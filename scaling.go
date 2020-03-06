@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+	vecty.SetTitle("Resource estimator - Sourcegraph")
 	err := vecty.RenderInto("#root", &MainView{
 		deploymentType: "estimated",
 		repositories: 300,
