@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gopherjs/vecty"
 	"github.com/gopherjs/vecty/elem"
 	"github.com/gopherjs/vecty/event"
 	"github.com/gopherjs/vecty/prop"
 	"github.com/sourcegraph/resource-estimator/internal/scaling"
 	"strconv"
-	"fmt"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
@@ -17,9 +17,9 @@ func main() {
 	vecty.SetTitle("Resource estimator - Sourcegraph")
 	err := vecty.RenderInto("#root", &MainView{
 		deploymentType: "estimated",
-		repositories: 300,
+		repositories:   300,
 		largeMonorepos: 0,
-		users: 100,
+		users:          100,
 		engagementRate: 50,
 	})
 	if err != nil {
@@ -32,7 +32,7 @@ func main() {
 type MainView struct {
 	vecty.Core
 	repositories, largeMonorepos, users, engagementRate int
-	deploymentType string
+	deploymentType                                      string
 }
 
 func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
@@ -126,9 +126,9 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 func (p *MainView) Render() vecty.ComponentOrHTML {
 	estimate := (&scaling.Estimate{
 		DeploymentType: p.deploymentType,
-		Repositories: p.repositories,
+		Repositories:   p.repositories,
 		LargeMonorepos: p.largeMonorepos,
-		Users: p.users,
+		Users:          p.users,
 		EngagementRate: p.engagementRate,
 	}).Calculate().Markdown()
 

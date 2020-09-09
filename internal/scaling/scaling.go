@@ -3,8 +3,8 @@ package scaling
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"math"
+	"sort"
 )
 
 type ScalingFactor int
@@ -20,15 +20,15 @@ type Resource struct {
 }
 
 func (r Resource) Add(o Resource) Resource {
-	return Resource{r.Request+o.Request, r.Limit+o.Limit}
+	return Resource{r.Request + o.Request, r.Limit + o.Limit}
 }
 
 func (r Resource) Sub(o Resource) Resource {
-	return Resource{r.Request-o.Request, r.Limit-o.Limit}
+	return Resource{r.Request - o.Request, r.Limit - o.Limit}
 }
 
 func (r Resource) MulScalar(f float64) Resource {
-	return Resource{r.Request*f, r.Limit*f}
+	return Resource{r.Request * f, r.Limit * f}
 }
 
 func (r Resource) round() Resource {
@@ -44,7 +44,7 @@ func resourceRound(f float64) float64 {
 	if f > 1 {
 		return math.Round(f)
 	}
-	return math.Round(f*4)/4
+	return math.Round(f*4) / 4
 }
 
 type ReferencePoint struct {
@@ -118,7 +118,7 @@ func init() {
 func interpolateReferencePoints(refs []ReferencePoint, value float64) ReferencePoint {
 	// Find a reference point below the value (a) and above the value (b).
 	var (
-		a, b ReferencePoint
+		a, b  ReferencePoint
 		found bool
 	)
 	for i, ref := range refs {
@@ -147,9 +147,9 @@ func interpolateReferencePoints(refs []ReferencePoint, value float64) ReferenceP
 	memoryGBRange := b.MemoryGB.Sub(a.MemoryGB)
 
 	return ReferencePoint{
-		Value: a.Value * scalingFactor,
+		Value:    a.Value * scalingFactor,
 		Replicas: a.Replicas + (int(math.Round(replicasRange * scalingFactor))),
-		CPU: a.CPU.Add(cpuRange.MulScalar(scalingFactor)),
+		CPU:      a.CPU.Add(cpuRange.MulScalar(scalingFactor)),
 		MemoryGB: a.MemoryGB.Add(memoryGBRange.MulScalar(scalingFactor)),
 	}
 }
@@ -163,17 +163,17 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	Repositories int
+	Repositories   int
 	LargeMonorepos int
-	Users int
+	Users          int
 	EngagementRate int
 	DeploymentType string // calculated if set to "estimated"
 
 	// calculated results
-	EngagedUsers int
+	EngagedUsers        int
 	AverageRepositories int
-	Services map[string]ReferencePoint
-	ContactSupport bool
+	Services            map[string]ReferencePoint
+	ContactSupport      bool
 
 	// These fields are the sum of the _requests_ of all services in the deployment, plus 50% of
 	// the difference in limits. The thinking is that requests are often far too low as they do not
@@ -214,10 +214,10 @@ func (e *Estimate) Calculate() *Estimate {
 		e.DeploymentType = "docker-compose"
 	}
 
-	var(
+	var (
 		sumCPURequests, sumCPULimits, sumMemoryGBRequests, sumMemoryGBLimits float64
-		largestCPULimit, largestMemoryGBLimit float64
-		visited = map[string]struct{}{}
+		largestCPULimit, largestMemoryGBLimit                                float64
+		visited                                                              = map[string]struct{}{}
 	)
 	countRef := func(service string, ref ReferencePoint) {
 		if _, ok := visited[service]; ok {
@@ -241,8 +241,8 @@ func (e *Estimate) Calculate() *Estimate {
 	for service, ref := range defaults[e.DeploymentType] {
 		countRef(service, ref)
 	}
-	totalCPU := sumCPURequests + ((sumCPULimits-sumCPURequests) * 0.5)
-	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits-sumMemoryGBRequests) * 0.5)
+	totalCPU := sumCPURequests + ((sumCPULimits - sumCPURequests) * 0.5)
+	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits - sumMemoryGBRequests) * 0.5)
 	e.TotalCPU = int(math.Ceil(totalCPU))
 	e.TotalMemoryGB = int(math.Ceil(totalMemoryGB))
 	e.TotalSharedCPU = int(math.Ceil(largestCPULimit))
