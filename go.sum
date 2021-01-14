@@ -1,9 +1,9 @@
-github.com/gopherjs/vecty v0.0.0-20200301031729-eafd720f09ee h1:bgl5zbbcwMskGk2pvjkw9LqGM76VQIVKf0/unPjOJBw=
-github.com/gopherjs/vecty v0.0.0-20200301031729-eafd720f09ee/go.mod h1:Yd9AOfl6lN1BWnVnvaSBwKiTCAcnlIGGvdsODOOZ9RY=
+github.com/hexops/vecty v0.6.0 h1:iiHfDOLEJufGy/hfPGzOTPkZe6rCszElYmUSzRQqK1w=
+github.com/hexops/vecty v0.6.0/go.mod h1:hVOPHAhrkXTf/9fl31Bpn2QvkW2ZOUZ0I3b3cohwCpI=
 github.com/microcosm-cc/bluemonday v1.0.2 h1:5lPfLTTAvAbtS0VqT+94yOtFnGfUWYyx0+iToC3Os3s=
 github.com/microcosm-cc/bluemonday v1.0.2/go.mod h1:iVP4YcDBq+n/5fb23BhYFvIMq/leAFZyRl6bYmGDlGc=
-github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
-github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday/v2 v2.0.1 h1:lPqVAte+HuHNfhJ/0LC98ESWRz8afy9tM/0RK8m9o+Q=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5IYyJwS/kOiWx8mHo=

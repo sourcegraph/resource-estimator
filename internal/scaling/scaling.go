@@ -3,8 +3,8 @@ package scaling
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"math"
+	"sort"
 )
 
 type ScalingFactor int
@@ -20,15 +20,15 @@ type Resource struct {
 }
 
 func (r Resource) Add(o Resource) Resource {
-	return Resource{r.Request+o.Request, r.Limit+o.Limit}
+	return Resource{r.Request + o.Request, r.Limit + o.Limit}
 }
 
 func (r Resource) Sub(o Resource) Resource {
-	return Resource{r.Request-o.Request, r.Limit-o.Limit}
+	return Resource{r.Request - o.Request, r.Limit - o.Limit}
 }
 
 func (r Resource) MulScalar(f float64) Resource {
-	return Resource{r.Request*f, r.Limit*f}
+	return Resource{r.Request * f, r.Limit * f}
 }
 
 func (r Resource) round() Resource {
@@ -44,7 +44,7 @@ func resourceRound(f float64) float64 {
 	if f > 1 {
 		return math.Round(f)
 	}
-	return math.Round(f*4)/4
+	return math.Round(f*4) / 4
 }
 
 type ReferencePoint struct {
@@ -118,7 +118,7 @@ func init() {
 func interpolateReferencePoints(refs []ReferencePoint, value float64) ReferencePoint {
 	// Find a reference point below the value (a) and above the value (b).
 	var (
-		a, b ReferencePoint
+		a, b  ReferencePoint
 		found bool
 	)
 	for i, ref := range refs {
@@ -147,9 +147,9 @@ func interpolateReferencePoints(refs []ReferencePoint, value float64) ReferenceP
 	memoryGBRange := b.MemoryGB.Sub(a.MemoryGB)
 
 	return ReferencePoint{
-		Value: a.Value * scalingFactor,
+		Value:    a.Value * scalingFactor,
 		Replicas: a.Replicas + (int(math.Round(replicasRange * scalingFactor))),
-		CPU: a.CPU.Add(cpuRange.MulScalar(scalingFactor)),
+		CPU:      a.CPU.Add(cpuRange.MulScalar(scalingFactor)),
 		MemoryGB: a.MemoryGB.Add(memoryGBRange.MulScalar(scalingFactor)),
 	}
 }
@@ -163,17 +163,17 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	Repositories int
+	Repositories   int
 	LargeMonorepos int
-	Users int
+	Users          int
 	EngagementRate int
 	DeploymentType string // calculated if set to "estimated"
 
 	// calculated results
-	EngagedUsers int
+	EngagedUsers        int
 	AverageRepositories int
-	Services map[string]ReferencePoint
-	ContactSupport bool
+	Services            map[string]ReferencePoint
+	ContactSupport      bool
 
 	// These fields are the sum of the _requests_ of all services in the deployment, plus 50% of
 	// the difference in limits. The thinking is that requests are often far too low as they do not
@@ -214,10 +214,10 @@ func (e *Estimate) Calculate() *Estimate {
 		e.DeploymentType = "docker-compose"
 	}
 
-	var(
+	var (
 		sumCPURequests, sumCPULimits, sumMemoryGBRequests, sumMemoryGBLimits float64
-		largestCPULimit, largestMemoryGBLimit float64
-		visited = map[string]struct{}{}
+		largestCPULimit, largestMemoryGBLimit                                float64
+		visited                                                              = map[string]struct{}{}
 	)
 	countRef := func(service string, ref ReferencePoint) {
 		if _, ok := visited[service]; ok {
@@ -241,8 +241,8 @@ func (e *Estimate) Calculate() *Estimate {
 	for service, ref := range defaults[e.DeploymentType] {
 		countRef(service, ref)
 	}
-	totalCPU := sumCPURequests + ((sumCPULimits-sumCPURequests) * 0.5)
-	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits-sumMemoryGBRequests) * 0.5)
+	totalCPU := sumCPURequests + ((sumCPULimits - sumCPURequests) * 0.5)
+	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits - sumMemoryGBRequests) * 0.5)
 	e.TotalCPU = int(math.Ceil(totalCPU))
 	e.TotalMemoryGB = int(math.Ceil(totalMemoryGB))
 	e.TotalSharedCPU = int(math.Ceil(largestCPULimit))
@@ -281,17 +281,30 @@ func (e *Estimate) Markdown() []byte {
 	}
 	fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
 	fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
-	if e.DeploymentType == "docker-compose" && e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
-		fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
-		fmt.Fprintf(&buf, "  <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>\n")
-		fmt.Fprintf(&buf, "  <ul>\n")
-		fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ CPUs (shared):** %v</li>\n", e.TotalSharedCPU)
-		fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ memory (shared):** %vg</li>\n", e.TotalSharedMemoryGB)
-		fmt.Fprintf(&buf, "  </ul><br>\n")
-		fmt.Fprintf(&buf, "  <p>**What this means:** Your instance woould not have enough resources for all services to run _at peak load_, and _sometimes_ this could lead to a lack of resources. This may appear as searches being slow for some users if many other requests or indexing jobs are ongoing.</p>\n")
-		fmt.Fprintf(&buf, "  <p>On small instances such as what you've chosen, this can often be OK -- just keep an eye out for any performance issues and increase resources as needed.</p>\n")
-		fmt.Fprintf(&buf, "  <p>To use shared resources, simply apply the limits shown below normally -- but only provision a machine with the resources shown above.</p>\n")
-		fmt.Fprintf(&buf, "  </blockquote></details>\n")
+	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
+		if e.DeploymentType == "docker-compose" {
+			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
+			fmt.Fprintf(&buf, "  <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>\n")
+			fmt.Fprintf(&buf, "  <ul>\n")
+			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ CPUs (shared):** %v</li>\n", e.TotalSharedCPU)
+			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ memory (shared):** %vg</li>\n", e.TotalSharedMemoryGB)
+			fmt.Fprintf(&buf, "  </ul><br>\n")
+			fmt.Fprintf(&buf, "  <p>**What this means:** Your instance would not have enough resources for all services to run _at peak load_, and _sometimes_ this could lead to a lack of resources. This may appear as searches being slow for some users if many other requests or indexing jobs are ongoing.</p>\n")
+			fmt.Fprintf(&buf, "  <p>On small instances such as what you've chosen, this can often be OK -- just keep an eye out for any performance issues and increase resources as needed.</p>\n")
+			fmt.Fprintf(&buf, "  <p>To use shared resources, simply apply the limits shown below normally -- but only provision a machine with the resources shown above.</p>\n")
+			fmt.Fprintf(&buf, "  </blockquote></details>\n")
+		} else if e.DeploymentType == "kubernetes" {
+			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
+			fmt.Fprintf(&buf, "  <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>\n")
+			fmt.Fprintf(&buf, "  <ul>\n")
+			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ CPUs (shared):** %v</li>\n", e.TotalSharedCPU)
+			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ memory (shared):** %vg</li>\n", e.TotalSharedMemoryGB)
+			fmt.Fprintf(&buf, "  </ul><br>\n")
+			fmt.Fprintf(&buf, "  <p>**What this means:** Your instance would not have enough resources for all services to run _at peak load_, and _sometimes_ this could lead to a lack of resources. This may appear as searches being slow for some users if many other requests or indexing jobs are ongoing.</p>\n")
+			fmt.Fprintf(&buf, "  <p>On small instances such as what you've chosen, this can often be OK -- just keep an eye out for any performance issues and increase resources as needed.</p>\n")
+			fmt.Fprintf(&buf, "  <p>To use shared resources, simply apply the \"limits\" shown below normally and remove or reduce the \"requests\" for each service.</p>\n")
+			fmt.Fprintf(&buf, "  </blockquote></details>\n")
+		}
 	}
 	fmt.Fprintf(&buf, "\n")
 

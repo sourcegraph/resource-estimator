@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -e
 
 # See https://stackoverflow.com/a/5148851
@@ -41,4 +42,3 @@ require_clean_work_tree "build"
 
 rm -f *.wasm
 GOOS=js GOARCH=wasm go build -o main_$(git rev-parse --short HEAD).wasm .
-

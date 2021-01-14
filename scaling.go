@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/gopherjs/vecty"
-	"github.com/gopherjs/vecty/elem"
-	"github.com/gopherjs/vecty/event"
-	"github.com/gopherjs/vecty/prop"
-	"github.com/sourcegraph/resource-estimator/internal/scaling"
-	"strconv"
 	"fmt"
+	"strconv"
+
+	"github.com/hexops/vecty"
+	"github.com/hexops/vecty/elem"
+	"github.com/hexops/vecty/event"
+	"github.com/hexops/vecty/prop"
+	"github.com/sourcegraph/resource-estimator/internal/scaling"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
@@ -17,9 +18,9 @@ func main() {
 	vecty.SetTitle("Resource estimator - Sourcegraph")
 	err := vecty.RenderInto("#root", &MainView{
 		deploymentType: "estimated",
-		repositories: 300,
+		repositories:   300,
 		largeMonorepos: 0,
-		users: 100,
+		users:          100,
 		engagementRate: 50,
 	})
 	if err != nil {
@@ -32,7 +33,7 @@ func main() {
 type MainView struct {
 	vecty.Core
 	repositories, largeMonorepos, users, engagementRate int
-	deploymentType string
+	deploymentType                                      string
 }
 
 func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
@@ -100,23 +101,23 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 	return vecty.List{
 		elem.Heading3(vecty.Text("Inputs")),
 		p.numberInput("repositories", func(e *vecty.Event) {
-			p.repositories, _ = strconv.Atoi(e.Get("target").Get("value").String())
+			p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 			vecty.Rerender(p)
 		}, p.repositories, scaling.RepositoriesRange, 5),
 		p.numberInput("users", func(e *vecty.Event) {
-			p.users, _ = strconv.Atoi(e.Get("target").Get("value").String())
+			p.users, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 			vecty.Rerender(p)
 		}, p.users, scaling.UsersRange, 1),
 		p.rangeInput(fmt.Sprint(p.largeMonorepos, " large monorepos"), func(e *vecty.Event) {
-			p.largeMonorepos, _ = strconv.Atoi(e.Get("target").Get("value").String())
+			p.largeMonorepos, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 			vecty.Rerender(p)
 		}, p.largeMonorepos, scaling.LargeMonoreposRange, 1),
 		p.rangeInput(fmt.Sprint(p.engagementRate, "% engagement rate"), func(e *vecty.Event) {
-			p.engagementRate, _ = strconv.Atoi(e.Get("target").Get("value").String())
+			p.engagementRate, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 			vecty.Rerender(p)
 		}, p.engagementRate, scaling.EngagementRateRange, 5),
 		p.radioInput("Deployment Type: ", []string{"estimated", "docker-compose", "kubernetes"}, func(e *vecty.Event) {
-			p.deploymentType = e.Get("target").Get("value").String()
+			p.deploymentType = e.Value.Get("target").Get("value").String()
 			vecty.Rerender(p)
 		}),
 	}
@@ -126,9 +127,9 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 func (p *MainView) Render() vecty.ComponentOrHTML {
 	estimate := (&scaling.Estimate{
 		DeploymentType: p.deploymentType,
-		Repositories: p.repositories,
+		Repositories:   p.repositories,
 		LargeMonorepos: p.largeMonorepos,
-		Users: p.users,
+		Users:          p.users,
 		EngagementRate: p.engagementRate,
 	}).Calculate().Markdown()
 
