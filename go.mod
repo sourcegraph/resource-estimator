@@ -1,6 +1,6 @@
 module github.com/sourcegraph/resource-estimator
 
-go 1.15
+go 1.16
 
 require (
 	github.com/hexops/vecty v0.6.0
