@@ -76,29 +76,6 @@ var References = []ServiceScale{
 		},
 	},
 
-	// Replacer replicas scale based on the number of average repositories, and its resources scale
-	// based on the size of repositories (i.e. when large monorepos are in the picture).
-	{
-		ServiceName:   "replacer",
-		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 12, Value: AverageRepositoriesRange.Max}, // projection
-			{Replicas: 9, Value: 15000 + 13500},                 // 28500 repos -- projection
-			{Replicas: 6, Value: 15000},                         // speculative and based on "replacer is nearly identical to searcher in scaling"
-			{Replicas: 3, Value: 1500},                          // speculative and based on "replacer is nearly identical to searcher in scaling"
-			{Replicas: 1, Value: AverageRepositoriesRange.Min},  // bare minimum
-		},
-	},
-	{
-		ServiceName:   "replacer",
-		ScalingFactor: ByLargeMonorepos,
-		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{2, 4}, MemoryGB: Resource{2, 2}, Value: LargeMonoreposRange.Max},    // very speculative
-			{CPU: Resource{1, 4}, MemoryGB: Resource{1, 1}, Value: 1},                          // very speculative
-			{CPU: Resource{.5, 4}, MemoryGB: Resource{.5, .5}, Value: LargeMonoreposRange.Min}, // bare minimum
-		},
-	},
-
 	// zoekt-indexserver memory usage scales based on whether it must index large monorepos. Its
 	// CPU usage and replicas scale based on the number of average repos it must index.
 	{
@@ -171,7 +148,6 @@ var defaults = map[string]map[string]ReferencePoint{
 		"query-runner":   ReferencePoint{Replicas: 1, CPU: Resource{.5, 1}, MemoryGB: Resource{1, 1}},
 		"redis-store":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
 		"redis-cache":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
-		"replacer":       ReferencePoint{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{.5, .5}},
 		"repo-updater":   ReferencePoint{Replicas: 1, CPU: Resource{.1, .1}, MemoryGB: Resource{.5, .5}},
 		"searcher":       ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
 		"symbols":        ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
@@ -182,7 +158,6 @@ var defaults = map[string]map[string]ReferencePoint{
 		"query-runner":   ReferencePoint{Replicas: 1, CPU: Resource{.5, 1}, MemoryGB: Resource{1, 1}},
 		"redis-store":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
 		"redis-cache":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
-		"replacer":       ReferencePoint{Replicas: 1, CPU: Resource{.5, 1}, MemoryGB: Resource{.5, .5}},
 		"repo-updater":   ReferencePoint{Replicas: 1, CPU: Resource{.1, 4}, MemoryGB: Resource{.5, 4}},
 		"searcher":       ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
 		"symbols":        ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 4}},
