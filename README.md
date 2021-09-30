@@ -11,6 +11,21 @@ Sourcegraph resource estimator
 go get -u github.com/hajimehoshi/wasmserve
 ```
 
+### Optional prerequisites
+
+The project includes a [justfile](https://github.com/sourcegraph/infrastructure/blob/main/justfile) that includes simple
+commands for automating common tasks such as:
+
+- Building the WASM binary: `just build`
+- Automatic formatting of various file types: `just format`
+- Linting of various filetypes: `just lint`
+- A single command to perform all of the above steps: `just`
+
+You can install `just` and the various commands it calls by either:
+
+1. Separately installing each of the tools listed in [.tool-versions](./.tool-versions) (via homebrew or something similar)
+2. Using the [asdf version manager](https://github.com/asdf-vm/asdf) and running [scripts/asdf-add-plugins.sh](./scripts/asdf-add-plugins.sh) followed by `asdf install`
+
 ## Development
 
 ```sh

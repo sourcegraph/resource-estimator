@@ -26,10 +26,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// revive:disable-next-line:empty-block
 	select {} // run Go forever
 }
 
 // MainView is our main component.
+// revive:disable-next-line:exported
 type MainView struct {
 	vecty.Core
 	repositories, largeMonorepos, users, engagementRate int
@@ -179,8 +181,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 	)
 }
 
-const repositoryPermissionsNote = `Repository permissions on Sourcegraph can have a noticeable impact on search performance if you have a large number of users and/or repositories on your code host.`
-
 // markdown is a simple component which renders the Input markdown as sanitized
 // HTML into a div.
 type markdown struct {
@@ -191,7 +191,7 @@ type markdown struct {
 // Render implements the vecty.Component interface.
 func (m *markdown) Render() vecty.ComponentOrHTML {
 	// Render the markdown input into HTML using Blackfriday.
-	unsafeHTML := blackfriday.Run([]byte(m.Content))
+	unsafeHTML := blackfriday.Run(m.Content)
 
 	// Sanitize the HTML.
 	safeHTML := string(bluemonday.UGCPolicy().SanitizeBytes(unsafeHTML))

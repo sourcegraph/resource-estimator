@@ -7,12 +7,12 @@ import (
 	"sort"
 )
 
-type ScalingFactor int
+type Factor int
 
 const (
-	ByEngagedUsers        ScalingFactor = iota
-	ByAverageRepositories ScalingFactor = iota
-	ByLargeMonorepos      ScalingFactor = iota
+	ByEngagedUsers        Factor = iota
+	ByAverageRepositories Factor = iota
+	ByLargeMonorepos      Factor = iota
 )
 
 type Resource struct {
@@ -82,7 +82,7 @@ func (r ReferencePoint) round() ReferencePoint {
 
 type ServiceScale struct {
 	ServiceName     string
-	ScalingFactor   ScalingFactor
+	ScalingFactor   Factor
 	ReferencePoints []ReferencePoint
 }
 
