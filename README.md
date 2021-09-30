@@ -5,6 +5,7 @@ Sourcegraph resource estimator
 ## Development Prerequisites
 
 - [Install Go](https://golang.org/doc/install), then:
+
 ### Optional prerequisites
 
 The project includes a [justfile](https://github.com/sourcegraph/infrastructure/blob/main/justfile) that includes simple
