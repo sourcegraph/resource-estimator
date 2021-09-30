@@ -29,7 +29,7 @@ require_clean_work_tree() {
 
 # Must be on master branch.
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [[ "$BRANCH" != "master" ]]; then
+if [[ "$BRANCH" != "master" && "${CI:-"false"}" != "true" ]]; then
   echo 'Must be on master branch.'
   exit 1
 fi

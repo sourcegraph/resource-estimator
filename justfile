@@ -1,6 +1,6 @@
 all: check format lint build
 
-build: render-ci-pipeline build-estimator
+build: render-ci-pipeline build-wasm
 
 render-ci-pipeline:
     ./scripts/render-ci-pipeline.sh
@@ -13,7 +13,7 @@ lint: lint-dhall shellcheck
 
 check: check-dhall
 
-build-estimator:
+build-wasm:
     ./build.sh
 
 prettier:

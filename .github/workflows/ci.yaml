@@ -111,6 +111,21 @@ jobs:
         run: './ci/asdf-install.sh'
       - name: Check that scripts are formatted consistently
         run: ci/check-shfmt.sh
+  wasmBuild:
+    name: Build WASM
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: 'actions/checkout@v2'
+      - name: Install asdf
+        uses: 'asdf-vm/actions/setup@v1.0.1'
+      - name: Install asdf plugins
+        run: './ci/asdf-add-plugins.sh'
+      - name: Install asdf tool versions and packages
+        run: './ci/asdf-install.sh'
+      - env:
+          CI: 'true'
+        name: Build WASM binary
+        run: just build-wasm
 name: CI
 on:
   push: {}
