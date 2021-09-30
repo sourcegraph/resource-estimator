@@ -1,8 +1,8 @@
 [
-    {
-      "origin": ["https://docs.sourcegraph.com", "http://localhost:5080"],
-      "responseHeader": ["Content-Type"],
-      "method": ["GET"],
-      "maxAgeSeconds": 3600
-    }
+  {
+    "origin": ["https://docs.sourcegraph.com", "http://localhost:5080"],
+    "responseHeader": ["Content-Type"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
 ]
