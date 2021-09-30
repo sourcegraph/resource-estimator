@@ -8,7 +8,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - name: Check that the CI pipeline definition is up-to-date with the dhall configuration
@@ -21,7 +21,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - name: Check that all dhall files typecheck
@@ -34,7 +34,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - env:
@@ -49,7 +49,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - env:
@@ -64,7 +64,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - name: 'golangci-lint (.)'
@@ -80,7 +80,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - name: Check Prettier formatting
@@ -93,7 +93,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - name: Lint shell scripts
@@ -106,7 +106,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - name: Check that scripts are formatted consistently
@@ -119,7 +119,7 @@ jobs:
       - name: Install asdf
         uses: 'asdf-vm/actions/setup@v1.0.1'
       - name: Install asdf plugins
-        run: './ci/asdf-add-plugins.sh'
+        run: './scripts/asdf-add-plugins.sh'
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - env:
