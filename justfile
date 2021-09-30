@@ -16,6 +16,12 @@ check: check-dhall
 build-wasm:
     ./build.sh
 
+dev: watch
+
+watch: watch-wasm
+watch-wasm:
+    ./scripts/watch-wasm.sh
+
 prettier:
     yarn run prettier
 

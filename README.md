@@ -5,12 +5,6 @@ Sourcegraph resource estimator
 ## Development Prerequisites
 
 - [Install Go](https://golang.org/doc/install), then:
-- Install `wasmserve`:
-
-```sh
-go get -u github.com/hajimehoshi/wasmserve
-```
-
 ### Optional prerequisites
 
 The project includes a [justfile](https://github.com/sourcegraph/infrastructure/blob/main/justfile) that includes simple
@@ -29,9 +23,7 @@ You can install `just` and the various commands it calls by either:
 ## Development
 
 ```sh
-cd resource-estimator/
-export GOROOT=$(go env GOROOT)
-wasmserve -allow-origin='*'
+./scripts/watch-wasm.sh # or "just watch | just dev"
 ```
 
 This will start serving on http://localhost:8080 the WASM bundle and recompiling code each time you reload the page (any errors compiling your changes will show up in this terminal).
