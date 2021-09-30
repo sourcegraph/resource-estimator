@@ -1,6 +1,6 @@
 package scaling
 
-// Spreadsheet of known good deployment configurations:
+// References represents the data from a spreadsheet of known good deployment configurations:
 // https://docs.google.com/spreadsheets/d/1in1sfEkgXGVB2_HInX93bxNOFJPA_r3ugfD5lEKCk_U/edit#gid=0
 var References = []ServiceScale{
 	// Frontend scales based on the number of engaged users.

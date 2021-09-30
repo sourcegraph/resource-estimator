@@ -1,7 +1,7 @@
 # copied from https://github.com/sourcegraph/sourcegraph/blob/0f2b75eea62a52ae7ad966bf5c4a6941043401a7/.golangci.yml
 linters-settings:
   dupl:
-    threshold: 100
+    threshold: 200
   gocritic:
     enabled-tags:
       - diagnostic
@@ -17,8 +17,37 @@ linters-settings:
       - wrapperFunc
   goimports:
     local-prefixes: github.com/sourcegraph/sourcegraph
-  golint:
-    min-confidence: 0
+  revive:
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+    errorCode: 0
+    warningCode: 0
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
   govet:
     check-shadowing: false
   maligned:
@@ -43,7 +72,6 @@ linters:
     - gocritic
     - goimports
     - gofmt
-    - golint
     - goprintffuncname
     - gosec
     - gosimple
@@ -52,6 +80,7 @@ linters:
     - interfacer
     - nakedret
     - nolintlint
+    - revive
     - rowserrcheck
     - staticcheck
     - structcheck
