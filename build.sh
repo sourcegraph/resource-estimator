@@ -36,5 +36,5 @@ fi
 
 require_clean_work_tree "build"
 
-rm -f *.wasm
-GOOS=js GOARCH=wasm go build -o main_$(git rev-parse --short HEAD).wasm .
+rm -f ./*.wasm
+GOOS=js GOARCH=wasm go build -o main_"$(git rev-parse --short HEAD)".wasm .
