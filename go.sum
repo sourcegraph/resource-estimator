@@ -1,3 +1,5 @@
+github.com/hajimehoshi/wasmserve v0.0.0-20210512070053-db8e7b58c3a0 h1:WhqBqA/lLy/+rpmXEIaykkcT/pBKN2sgOjXbLJ8pE3M=
+github.com/hajimehoshi/wasmserve v0.0.0-20210512070053-db8e7b58c3a0/go.mod h1:DI8IeyYdAkNS/K9JvLFBab7cmOkvoLCvMS9U8hLP2tw=
 github.com/hexops/vecty v0.6.0 h1:iiHfDOLEJufGy/hfPGzOTPkZe6rCszElYmUSzRQqK1w=
 github.com/hexops/vecty v0.6.0/go.mod h1:hVOPHAhrkXTf/9fl31Bpn2QvkW2ZOUZ0I3b3cohwCpI=
 github.com/microcosm-cc/bluemonday v1.0.2 h1:5lPfLTTAvAbtS0VqT+94yOtFnGfUWYyx0+iToC3Os3s=
