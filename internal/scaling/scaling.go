@@ -179,6 +179,8 @@ type Estimate struct {
 	// the difference in limits. The thinking is that requests are often far too low as they do not
 	// describe peak load of the service, and limits are often far too high
 	// and the sweet spot is in the middle.
+	//TODO Might have to come back and rethink this reasoning as it has not been sufficient based on the CEs feedback.
+	//Mabye 70% of the difference in limits is appropriate.
 	TotalCPU, TotalMemoryGB int
 
 	TotalSharedCPU, TotalSharedMemoryGB int
@@ -208,8 +210,19 @@ func (e *Estimate) Calculate() *Estimate {
 		if v.ContactSupport {
 			e.ContactSupport = true
 		}
+		//The service names are being pulled from ServiceScale objects
+		//TODO find a way to join the default services by name to the Estimate.Services that is apart of the object passed into this function
 		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
 	}
+
+	//Right now this loop is needlesssly running a second time
+	//TODO make this a one pass with a more elegant solution
+	for _, service := range defaults {
+		for key, ref := range service {
+			e.Services[key] = e.Services[key].join(ref)
+		}
+	}
+
 	if e.DeploymentType == "estimated" {
 		e.DeploymentType = "docker-compose"
 	}
@@ -219,6 +232,7 @@ func (e *Estimate) Calculate() *Estimate {
 		largestCPULimit, largestMemoryGBLimit                                float64
 		visited                                                              = map[string]struct{}{}
 	)
+	//countRef calculates the total resources needed
 	countRef := func(service string, ref ReferencePoint) {
 		if _, ok := visited[service]; ok {
 			return
@@ -235,9 +249,11 @@ func (e *Estimate) Calculate() *Estimate {
 			largestMemoryGBLimit = v
 		}
 	}
+	//countRef is being used for the services that have a prescribed ServiceScale
 	for service, ref := range e.Services {
 		countRef(service, ref)
 	}
+	//countRef is being used for the services without a ServiceScale while taking into account the deployment type
 	for service, ref := range defaults[e.DeploymentType] {
 		countRef(service, ref)
 	}
