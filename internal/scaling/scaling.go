@@ -214,6 +214,22 @@ func (e *Estimate) Calculate() *Estimate {
 		e.DeploymentType = "docker-compose"
 	}
 
+	// Ensure we have the same replica counts for services that live in the
+	// same pod.
+	for _, pod := range pods {
+		maxReplicas := 0
+		for _, name := range pod {
+			if replicas := e.Services[name].Replicas; replicas > maxReplicas {
+				maxReplicas = replicas
+			}
+		}
+		for _, name := range pod {
+			v := e.Services[name]
+			v.Replicas = maxReplicas
+			e.Services[name] = v
+		}
+	}
+
 	var (
 		sumCPURequests, sumCPULimits, sumMemoryGBRequests, sumMemoryGBLimits float64
 		largestCPULimit, largestMemoryGBLimit                                float64
