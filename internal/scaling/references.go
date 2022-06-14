@@ -142,6 +142,12 @@ var References = []ServiceScale{
 	},
 }
 
+// pods list services which live in the same pod. This is used to ensure we
+// recommend the same number of replicas.
+var pods = map[string][]string{
+	"indexed-search": {"zoekt-webserver", "zoekt-indexserver"},
+}
+
 var defaults = map[string]map[string]ReferencePoint{
 	"kubernetes": {
 		"prometheus":     ReferencePoint{Replicas: 1, CPU: Resource{.5, .5}, MemoryGB: Resource{2, 2}},
