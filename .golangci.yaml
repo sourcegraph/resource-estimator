@@ -77,7 +77,6 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - nakedret
     - nolintlint
     - revive

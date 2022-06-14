@@ -16,9 +16,9 @@ let MakeSteps
           ( λ(d : Text) →
               GitHubActions.Step::{
               , name = Some "golangci-lint (${d})"
-              , uses = Some "golangci/golangci-lint-action@v2.5.2"
+              , uses = Some "golangci/golangci-lint-action@v3"
               , `with` = Some
-                  (toMap { version = "v1.39.0", working-directory = d })
+                  (toMap { version = "v1.46.2", working-directory = d })
               }
           )
           dirs

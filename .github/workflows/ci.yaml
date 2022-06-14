@@ -68,9 +68,9 @@ jobs:
       - name: Install asdf tool versions and packages
         run: './ci/asdf-install.sh'
       - name: 'golangci-lint (.)'
-        uses: 'golangci/golangci-lint-action@v2.5.2'
+        uses: 'golangci/golangci-lint-action@v3'
         with:
-          version: v1.39.0
+          version: v1.46.2
           working-directory: '.'
   prettier:
     name: Prettier formatting
