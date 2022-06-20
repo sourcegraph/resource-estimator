@@ -1,0 +1,30 @@
+`### Estimate overview
+
+* Estimated resources for 50 engaged users and 300 average-size repositories.
+* **Deployment type:** docker-compose
+* **Estimated total CPUs:** 28
+* **Estimated total memory:** 54g
+* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>
+  <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>
+  <ul>
+  <li>**Estimated total _shared_ CPUs (shared):** 8</li>
+  <li>**Estimated total _shared_ memory (shared):** 14g</li>
+  </ul><br>
+  <p>**What this means:** Your instance would not have enough resources for all services to run _at peak load_, and _sometimes_ this could lead to a lack of resources. This may appear as searches being slow for some users if many other requests or indexing jobs are ongoing.</p>
+  <p>On small instances such as what you've chosen, this can often be OK -- just keep an eye out for any performance issues and increase resources as needed.</p>
+  <p>To use shared resources, simply apply the limits shown below normally -- but only provision a machine with the resources shown above.</p>
+  </blockquote></details>
+
+### Service replicas & resources
+
+| Service | Replicas | CPU requests | CPU limits | Memory requests | Memory limits | Note |
+|---------|----------|--------------|------------|-----------------|---------------|------|
+| frontend | **_1ꜝ_** | - | **_2ꜝ_** | - | **_4gꜝ_** | - |
+| gitserver | **_1ꜝ_** | - | **_8ꜝ_** | - | **_8gꜝ_** | - |
+| searcher | 1 | - | 2 | - | 2g | - |
+| symbols | 1 | - | 2 | - | **_2gꜝ_** | - |
+| syntect-server | 1 | - | 4 | - | 6g | - |
+| zoekt-indexserver | **_1ꜝ_** | - | **_8ꜝ_** | - | **_8gꜝ_** | - |
+| zoekt-webserver | **_1ꜝ_** | - | **_3ꜝ_** | - | **_13gꜝ_** | - |
+
+_Bold/italic and ꜝ indicate the value is modified from the default. Services not listed here use the default values._`

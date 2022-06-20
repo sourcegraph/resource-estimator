@@ -6,8 +6,41 @@ import (
 	"testing"
 	"testing/quick"
 
+	"github.com/hexops/autogold"
 	"github.com/sourcegraph/resource-estimator/internal/scaling"
 )
+
+func TestEstimate(t *testing.T) {
+	cases := []struct {
+		Name string
+		scaling.Estimate
+	}{{
+		Name: "default",
+		Estimate: scaling.Estimate{
+			DeploymentType: "estimated",
+			Repositories:   300,
+			LargeMonorepos: 0,
+			Users:          100,
+			EngagementRate: 50,
+		},
+	}, {
+		Name: "monorepo",
+		Estimate: scaling.Estimate{
+			DeploymentType: "estimated",
+			Repositories:   0,
+			LargeMonorepos: 1,
+			Users:          100,
+			EngagementRate: 50,
+		},
+	}}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			got := string(tc.Estimate.Calculate().Markdown())
+			autogold.Equal(t, got)
+		})
+	}
+}
 
 // This test will ensure that the outputs of calculate don't break any known
 // invariants we expect. We do a mix of random inputs and some exhaustive
