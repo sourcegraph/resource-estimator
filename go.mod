@@ -1,6 +1,6 @@
 module github.com/sourcegraph/resource-estimator
 
-go 1.16
+go 1.18
 
 require (
 	github.com/hajimehoshi/wasmserve v0.0.0-20210512070053-db8e7b58c3a0
