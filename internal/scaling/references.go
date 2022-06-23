@@ -1,19 +1,91 @@
 package scaling
 
 // References represents the data from a spreadsheet of known good deployment configurations:
-// https://docs.google.com/spreadsheets/d/1in1sfEkgXGVB2_HInX93bxNOFJPA_r3ugfD5lEKCk_U/edit#gid=0
+// https://docs.google.com/spreadsheets/d/1N7X_OXDwKk0QSR2Ghbj7ZhjVrQXcMNj-yC8mF1amBi4/edit?usp=sharing
 var References = []ServiceScale{
 	// Frontend scales based on the number of engaged users.
+	// Add 2000 users to user count if code-insight is enabled
 	{
 		ServiceName:   "frontend",
-		ScalingFactor: ByEngagedUsers,
+		ScalingFactor: ByEngagedUsers, // UsersRange = {5, 10000}
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 9, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: UsersRange.Max},    // projection
-			{Replicas: 5, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: 1750 + (1425 * 2)}, // projection
-			{Replicas: 4, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: 1750 + (1425 * 1)}, // projection
-			{Replicas: 3, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: 7000 * .25},        // 1750 users -- row 3 of spreadsheet
-			{Replicas: 3, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: 1300 * .25},        // 325 users -- row 2 of spreadsheet
-			{Replicas: 1, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: UsersRange.Min},    // bare minimum
+			{Replicas: 5, CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: UsersRange.Max}, // projection
+			{Replicas: 3, CPU: Resource{4, 8}, MemoryGB: Resource{8, 16}, Value: 5000},           // projection
+			{Replicas: 3, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2100},            // current data: #4
+			{Replicas: 2, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2050},            /// current data: #45
+			{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: UsersRange.Min},  // default for instance with <2000 users without code-insight
+		},
+	},
+
+	// Gitserver scales based on the total size of all repoes and number of average repositories.
+	{
+		ServiceName:   "gitserver",
+		ScalingFactor: ByUserRepoSumRatio,
+		ReferencePoints: []ReferencePoint{
+			{Replicas: 5, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: UserRepoSumRatioRange.Max}, // projection
+			{Replicas: 4, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: 150},                       // projection
+			{Replicas: 4, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 50},                          // data from dogfood
+			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 30},                          // projection
+			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 20},                          // projection
+			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 10},                          // projection
+			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 5},                           // projection
+			{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 2},                           // projection
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: UserRepoSumRatioRange.Min},     // default for instance with <4000 repos
+		},
+	},
+
+	// postgres database
+	{
+		ServiceName:   "pgsql",
+		ScalingFactor: ByAverageRepositories,
+		ReferencePoints: []ReferencePoint{
+			{Replicas: 1, CPU: Resource{7, 7}, MemoryGB: Resource{32, 32}, Value: AverageRepositoriesRange.Max}, // dogfood
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{16, 16}, Value: 25000},                        // data
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: 4000},                           // projection
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}, Value: AverageRepositoriesRange.Min},   // bare minimum
+		},
+	},
+	// The entire index must be read into memory to be correlated.
+	// Scale vertically when the uploaded index is too large to be processed without OOMing the worker.
+	// Scale horizontally to process a higher throughput of indexes.
+	// calculation: ~2 times of the size of the largest index
+	{
+		ServiceName:   "precise-code-intel",
+		ScalingFactor: ByLargestIndexSize,
+		ReferencePoints: []ReferencePoint{
+			{Replicas: 4, CPU: Resource{4, 4}, MemoryGB: Resource{25, 50}, Value: LargestIndexSizeRange.Max}, // calculation
+			{Replicas: 4, CPU: Resource{4, 4}, MemoryGB: Resource{20, 41}, Value: 81},                        // calculation
+			{Replicas: 3, CPU: Resource{4, 4}, MemoryGB: Resource{29, 58}, Value: 80},                        // calculation
+			{Replicas: 3, CPU: Resource{4, 4}, MemoryGB: Resource{20, 40}, Value: 61},                        // calculation
+			{Replicas: 2, CPU: Resource{4, 4}, MemoryGB: Resource{30, 60}, Value: 60},                        // calculation
+			{Replicas: 2, CPU: Resource{4, 4}, MemoryGB: Resource{16, 32}, Value: 32},                        // calculation
+			{Replicas: 2, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 8},                           // calculation
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 16}, Value: 7},                          // calculation
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{2, 4}, Value: LargestIndexSizeRange.Min},   // bare minimum
+		},
+	},
+
+	// Searcher replicas scale based the number of concurrent unidexed queries & number concurrent of structural searches
+	{
+		ServiceName:   "searcher",
+		ScalingFactor: ByAverageRepositories,
+		ReferencePoints: []ReferencePoint{
+			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // projection
+			{Replicas: 6, Value: 25000},                        // current data: #4 & 12
+			{Replicas: 4, Value: 14000},                        // current data: #51
+			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
+		},
+	},
+	// Searcher is IO and CPU bound. It fetches archives from gitserver and searches them with regexp.
+	// Memory scales based on the size of repositories (i.e. when large monorepos are in the picture).
+	{
+		ServiceName:   "searcher",
+		ScalingFactor: ByAverageRepositories,
+		ReferencePoints: []ReferencePoint{
+			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Max},   // speculative
+			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: 25000},                          // current data: #4
+			{CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: 4000},                          // current data: #47
+			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
 
@@ -23,10 +95,9 @@ var References = []ServiceScale{
 		ServiceName:   "symbols",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // projection
-			{Replicas: 6, Value: 15000 + 13500},                // 28500 repos -- projection
-			{Replicas: 4, Value: 15000},                        // row 3 of spreadsheet
-			{Replicas: 2, Value: 1500},                         // row 4 of spreadsheet
+			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // projection
+			{Replicas: 3, Value: 25000},                        // projection
+			{Replicas: 2, Value: 4000},                         // projection
 			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
@@ -34,45 +105,36 @@ var References = []ServiceScale{
 		ServiceName:   "symbols",
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{2, 4}, MemoryGB: Resource{1, 4}, Value: LargeMonoreposRange.Max},   // estimate based on entire spreadsheet
-			{CPU: Resource{2, 4}, MemoryGB: Resource{1, 4}, Value: 1},                         // estimate based on entire spreadsheet
+			{CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: LargeMonoreposRange.Max},  // projection
+			{CPU: Resource{2, 4}, MemoryGB: Resource{2, 8}, Value: 5},                         // projection
 			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: LargeMonoreposRange.Min}, // bare minimum
 		},
 	},
 
-	// Gitserver scales based on the number of average repositories.
+	// At initialization time, many highlighting themes and compiled grammars are loaded into memory.
+	// There is additional memory consumption on receiving requests (< 25 MB), although,
+	// that's generally much smaller than the constant overhead (1-2 GB).
+	// In some situations, there are hangs with syntax highlighting.
+	// These can cause runaway CPU usage (for 1 core per hang).
+	// syntect-server should normally kill such processes and restart them if that happens.
 	{
-		ServiceName:   "gitserver",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:   "syntect-server",
+		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Max}, // projection
-			{Replicas: 4, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}, Value: 15000 + 13500},                // projection
-			{Replicas: 3, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}, Value: 15000},                        // from row 3 of spreadsheet
-			{Replicas: 2, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}, Value: 1500},                         // from row 4 of spreadsheet
-			{Replicas: 1, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Min}, // bare minimum
+			{Replicas: 1, CPU: Resource{2, 8}, MemoryGB: Resource{6, 12}, Value: UsersRange.Max}, // speculative
+			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: 5000},           // current data: average between 27 and
+			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: UsersRange.Min}, // bare minimum
 		},
 	},
 
-	// Searcher replicas scale based on the number of average repositories, and its resources scale
-	// based on the size of repositories (i.e. when large monorepos are in the picture).
+	// worker is used by different services, and mostly scale based on the number of average repositories to execute jobs
 	{
-		ServiceName:   "searcher",
+		ServiceName:   "worker",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 12, Value: AverageRepositoriesRange.Max}, // projection
-			{Replicas: 9, Value: 15000 + 13500},                 // 28500 repos -- projection
-			{Replicas: 6, Value: 15000},                         // row 3 of spreadsheet
-			{Replicas: 3, Value: 1500},                          // row 4 of spreadsheet
-			{Replicas: 1, Value: AverageRepositoriesRange.Min},  // bare minimum
-		},
-	},
-	{
-		ServiceName:   "searcher",
-		ScalingFactor: ByLargeMonorepos,
-		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{.5, 2}, MemoryGB: Resource{1, 4}, Value: LargeMonoreposRange.Max},  // speculative
-			{CPU: Resource{.5, 2}, MemoryGB: Resource{1, 4}, Value: 1},                        // speculative
-			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: LargeMonoreposRange.Min}, // bare minimum
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 16}, Value: AverageRepositoriesRange.Max}, // projection
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 4000},                          // projection
+			{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
 
@@ -83,8 +145,8 @@ var References = []ServiceScale{
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []ReferencePoint{
 			{MemoryGB: Resource{16, 16}, Value: LargeMonoreposRange.Max}, // speculative
-			{MemoryGB: Resource{16, 16}, Value: 1},                       // from row 9 of spreadsheet
-			{MemoryGB: Resource{4, 8}, Value: LargeMonoreposRange.Min},   // bare minimum
+			{MemoryGB: Resource{16, 16}, Value: 2},                       // from row 9 of spreadsheet
+			{MemoryGB: Resource{50, 50}, Value: LargeMonoreposRange.Min}, // bare minimum
 		},
 	},
 	{
@@ -93,6 +155,7 @@ var References = []ServiceScale{
 		ReferencePoints: []ReferencePoint{
 			{Replicas: 2, CPU: Resource{6, 12}, Value: AverageRepositoriesRange.Max}, // speculative based on row 8 of spreadsheet
 			{Replicas: 2, CPU: Resource{4, 8}, Value: 17000},                         // derived from row 9 of spreadsheet
+			{Replicas: 1, CPU: Resource{4, 8}, Value: 1500},                          // current data: #44
 			{Replicas: 1, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Min},  // bare minimum
 		},
 	},
@@ -102,14 +165,15 @@ var References = []ServiceScale{
 	// based on the number of users it serves (and the size of the index, but we do not account for
 	// that here and instead assume a correlation between # users and # repos which is generally
 	// true.)
+	// max MEM = 64 (max MEM) - 1 (jaeger agent) - 1.5 (system CPU) = 61
 	{
 		ServiceName:   "zoekt-webserver",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 2, MemoryGB: Resource{80, 80}, Value: AverageRepositoriesRange.Max}, // derived from row 8 of spreadsheet
-			{Replicas: 2, MemoryGB: Resource{50, 50}, Value: 17000},                        // derived from row 9 of spreadsheet
-			{Replicas: 1, MemoryGB: Resource{64, 64}, Value: 11000},                        // derived from row 2 of spreadsheet
-			{Replicas: 1, MemoryGB: Resource{34, 34}, Value: 1500},                         // derived from row 4 of spreadsheet
+			{Replicas: 5, MemoryGB: Resource{61, 61}, Value: AverageRepositoriesRange.Max}, // dogfood
+			{Replicas: 4, MemoryGB: Resource{61, 61}, Value: 25000},                        // current data: #51
+			{Replicas: 2, MemoryGB: Resource{32, 32}, Value: 4500},                         // current data: #55
+			{Replicas: 1, MemoryGB: Resource{50, 50}, Value: 1500},                         // current data: #44
 			{Replicas: 1, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Min},   // bare minimum
 		},
 	},
@@ -117,27 +181,10 @@ var References = []ServiceScale{
 		ServiceName:   "zoekt-webserver",
 		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{192, 192}, Value: UsersRange.Max},     // projection
-			{CPU: Resource{48, 48}, Value: UsersRange.Max * .25}, // projection
-			{CPU: Resource{16, 16}, Value: 210 * 4},              // 840 engaged users -- derived from row 9 of spreadsheet
-			{CPU: Resource{12, 12}, Value: 1300 * .50},           // 650 engaged users -- row 2 of spreadsheet
-			{CPU: Resource{.5, 2}, Value: UsersRange.Min},        // bare minimum
-		},
-	},
-
-	// syntect_server internally runs 4 worker processes, each of which can consume up ot 1.1G of
-	// memory and concurrently serves many HTTP requests. Once its memory reaches 4.4G total,
-	// scaling becomes linear based on request load, primarily with CPU being the bottleneck.
-	{
-		ServiceName:   "syntect-server",
-		ScalingFactor: ByEngagedUsers,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{12, 64}, MemoryGB: Resource{6, 10}, Value: UsersRange.Max}, // speculative
-			{Replicas: 1, CPU: Resource{6, 32}, MemoryGB: Resource{5, 9}, Value: 8000},             // speculative
-			{Replicas: 1, CPU: Resource{4, 16}, MemoryGB: Resource{4, 8}, Value: 6000},             // speculative
-			{Replicas: 1, CPU: Resource{2, 8}, MemoryGB: Resource{3, 7}, Value: 4000},              // speculative
-			{Replicas: 1, CPU: Resource{.25, 4}, MemoryGB: Resource{2, 6}, Value: 2000},            // Derived from https://sourcegraph.slack.com/archives/D2QCCPZBP/p1582591335002100
-			{Replicas: 1, CPU: Resource{.25, 4}, MemoryGB: Resource{2, 6}, Value: UsersRange.Min},  // bare minimum
+			{CPU: Resource{16, 16}, Value: UsersRange.Max}, // projection
+			{CPU: Resource{12, 12}, Value: 15000},          // current data: #51
+			{CPU: Resource{8, 8}, Value: 2100},             // current data: #44
+			{CPU: Resource{.5, 2}, Value: UsersRange.Min},  // bare minimum
 		},
 	},
 }
@@ -150,23 +197,33 @@ var pods = map[string][]string{
 
 var defaults = map[string]map[string]ReferencePoint{
 	"kubernetes": {
-		"prometheus":     ReferencePoint{Replicas: 1, CPU: Resource{.5, .5}, MemoryGB: Resource{2, 2}},
-		"query-runner":   ReferencePoint{Replicas: 1, CPU: Resource{.5, 1}, MemoryGB: Resource{1, 1}},
-		"redis-store":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
-		"redis-cache":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
-		"repo-updater":   ReferencePoint{Replicas: 1, CPU: Resource{.1, .1}, MemoryGB: Resource{.5, .5}},
-		"searcher":       ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
-		"symbols":        ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
-		"syntect-server": ReferencePoint{Replicas: 1, CPU: Resource{.25, 4}, MemoryGB: Resource{2, 6}},
+		"frontend":           ReferencePoint{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}},
+		"gitserver":          ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}},
+		"pgsql":              ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}},
+		"precise-code-intel": ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
+		"redis-store":        ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
+		"redis-cache":        ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
+		"repo-updater":       ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{.5, 2}},
+		"searcher":           ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
+		"symbols":            ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
+		"syntect-server":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}},
+		"worker":             ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
+		"zoekt-webserver":    ReferencePoint{Replicas: 1, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}},
+		"zoekt-indexserver":  ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
 	},
 	"docker-compose": {
-		"prometheus":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 8}},
-		"query-runner":   ReferencePoint{Replicas: 1, CPU: Resource{.5, 1}, MemoryGB: Resource{1, 1}},
-		"redis-store":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
-		"redis-cache":    ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{6, 6}},
-		"repo-updater":   ReferencePoint{Replicas: 1, CPU: Resource{.1, 4}, MemoryGB: Resource{.5, 4}},
-		"searcher":       ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
-		"symbols":        ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 4}},
-		"syntect-server": ReferencePoint{Replicas: 1, CPU: Resource{.25, 4}, MemoryGB: Resource{2, 6}},
+		"frontend":           ReferencePoint{Replicas: 2, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}},
+		"gitserver":          ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}},
+		"pgsql":              ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}},
+		"precise-code-intel": ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
+		"redis-store":        ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
+		"redis-cache":        ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
+		"repo-updater":       ReferencePoint{Replicas: 1, CPU: Resource{.1, 4}, MemoryGB: Resource{.5, 4}},
+		"searcher":           ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
+		"symbols":            ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 4}},
+		"syntect-server":     ReferencePoint{Replicas: 1, CPU: Resource{.25, 4}, MemoryGB: Resource{2, 6}},
+		"worker":             ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}},
+		"zoekt-webserver":    ReferencePoint{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}},
+		"zoekt-indexserver":  ReferencePoint{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{50, 50}},
 	},
 }

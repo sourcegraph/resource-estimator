@@ -13,6 +13,9 @@ const (
 	ByEngagedUsers        Factor = iota
 	ByAverageRepositories Factor = iota
 	ByLargeMonorepos      Factor = iota
+	ByLargestRepoSize     Factor = iota
+	ByLargestIndexSize    Factor = iota
+	ByUserRepoSumRatio    Factor = iota
 )
 
 type Resource struct {
@@ -97,13 +100,17 @@ const (
 
 var (
 	UsersRange               = Range{5, 10000}
-	RepositoriesRange        = Range{5, 40000}
+	RepositoriesRange        = Range{5, 50000}
+	TotalRepoSizeRange       = Range{1, 5000}
 	LargeMonoreposRange      = Range{0, 10}
+	LargestRepoSizeRange     = Range{0, 5000}
+	LargestIndexSizeRange    = Range{0, 100}
 	AverageRepositoriesRange = Range{
 		RepositoriesRange.Min + (LargeMonoreposRange.Min * MonorepoFactor),
 		RepositoriesRange.Max + (LargeMonoreposRange.Max * MonorepoFactor),
 	}
-	EngagementRateRange = Range{0, 100}
+	UserRepoSumRatioRange = Range{1, 200}
+	EngagementRateRange   = Range{5, 100}
 )
 
 func init() {
@@ -163,13 +170,19 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	Repositories   int
-	LargeMonorepos int
-	Users          int
-	EngagementRate int
-	DeploymentType string // calculated if set to "estimated"
+	Repositories     int
+	LargeMonorepos   int
+	TotalRepoSize    int
+	LargestRepoSize  int
+	LargestIndexSize int
+	Users            int
+	EngagementRate   int
+	DeploymentType   string // calculated if set to "docker-compose"
+	CodeIntel        string
+	CodeInsight      string
 
 	// calculated results
+	UserRepoSumRatio    int
 	EngagedUsers        int
 	AverageRepositories int
 	Services            map[string]ReferencePoint
@@ -186,31 +199,37 @@ type Estimate struct {
 
 func (e *Estimate) Calculate() *Estimate {
 	e.EngagedUsers = e.Users * e.EngagementRate / 100
+	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*50) / 1000
 	e.AverageRepositories = e.Repositories + (e.LargeMonorepos * MonorepoFactor)
-
 	e.Services = make(map[string]ReferencePoint)
 	for _, ref := range References {
 		var value float64
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
 			value = float64(e.EngagedUsers)
+			if e.CodeInsight == "Yes" {
+				value = float64(e.EngagedUsers + 2000)
+			}
 		case ByAverageRepositories:
 			value = float64(e.AverageRepositories)
 		case ByLargeMonorepos:
 			value = float64(e.LargeMonorepos)
+		case ByLargestRepoSize:
+			value = float64(e.LargestRepoSize)
+		case ByLargestIndexSize:
+			value = float64(e.LargestIndexSize)
+		case ByUserRepoSumRatio:
+			value = float64(e.UserRepoSumRatio)
 		default:
 			panic("never here")
 		}
 		v := interpolateReferencePoints(ref.ReferencePoints, value)
-		if e.DeploymentType == "estimated" && v.Replicas > 1 {
-			e.DeploymentType = "kubernetes"
-		}
 		if v.ContactSupport {
 			e.ContactSupport = true
 		}
 		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
 	}
-	if e.DeploymentType == "estimated" {
+	if e.DeploymentType == "type" {
 		e.DeploymentType = "docker-compose"
 	}
 
@@ -323,6 +342,15 @@ func (e *Estimate) Markdown() []byte {
 		}
 	}
 	fmt.Fprintf(&buf, "\n")
+	var totalRepoSize = e.TotalRepoSize * 2
+	// Disk Spaces
+	fmt.Fprintf(&buf, "### Disk Spaces\n")
+	fmt.Fprintf(&buf, "\n")
+	fmt.Fprintf(&buf, "* Your gitserver disk space must be at least %v GB.\n", fmt.Sprint(totalRepoSize))
+	fmt.Fprintf(&buf, "* Your pgsql disk space must be at least %v GB.\n", fmt.Sprint(totalRepoSize))
+	fmt.Fprintf(&buf, "* Your minio disk space must be larger than %v GB.\n", fmt.Sprint(e.LargestIndexSize))
+
+	fmt.Fprintf(&buf, "\n")
 
 	// Service replicas & resources
 	fmt.Fprintf(&buf, "### Service replicas & resources\n")
@@ -341,6 +369,7 @@ func (e *Estimate) Markdown() []byte {
 		ref = ref.round()
 		plus := ""
 		note := "-"
+
 		if ref.ContactSupport {
 			plus = "+"
 			note = "[contact support](mailto:support@sourcegraph.com)"
