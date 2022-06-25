@@ -1,7 +1,7 @@
 github.com/google/go-cmp v0.5.4 h1:L8R9j+yAqZuZjsqh/z+F1NCffTKKLShY6zXTItVIZ8M=
 github.com/google/go-cmp v0.5.4/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/hajimehoshi/wasmserve v0.0.0-20210512070053-db8e7b58c3a0 h1:WhqBqA/lLy/+rpmXEIaykkcT/pBKN2sgOjXbLJ8pE3M=
-github.com/hajimehoshi/wasmserve v0.0.0-20210512070053-db8e7b58c3a0/go.mod h1:DI8IeyYdAkNS/K9JvLFBab7cmOkvoLCvMS9U8hLP2tw=
+github.com/hajimehoshi/wasmserve v0.0.0-20220407032727-829ff31b29cd h1:ZPD+Q72UuYGFXRN7jNrKmpba+h0JumEYU+j4SyW8bRE=
+github.com/hajimehoshi/wasmserve v0.0.0-20220407032727-829ff31b29cd/go.mod h1:R7GWZ4rfKerxj6MG5yspAk5BEI7j0IgeIQqncBraNRg=
 github.com/hexops/autogold v0.8.1/go.mod h1:97HLDXyG23akzAoRYJh/2OBs3kd80eHyKPvZw0S5ZBY=
 github.com/hexops/autogold v1.3.0 h1:IEtGNPxBeBu8RMn8eKWh/Ll9dVNgSnJ7bp/qHgMQ14o=
 github.com/hexops/autogold v1.3.0/go.mod h1:d4hwi2rid66Sag+BVuHgwakW/EmaFr8vdTSbWDbrDRI=

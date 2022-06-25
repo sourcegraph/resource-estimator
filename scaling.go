@@ -177,14 +177,15 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		CodeInsight:      p.codeinsightEabled,
 	}).Calculate().Result()
 
-	explainEngagementRate := "The percentage of users who use Sourcegraph regularly. It is often used for existing deployments to estimate resources."
+	explainEngagementRate := "> Engagement rate refers to the percentage of users who use Sourcegraph regularly. It is generally used for existing deployments to estimate resources."
 
 	repoPermissionsNote := "> Repository permissions on Sourcegraph can have a noticeable impact on search performance if you have a large number of users and/or repositories on your code host.\n"
 	repoPermissionsNote += ">\n"
 	repoPermissionsNote += "> We suggest setting your `authorization` `ttl` values as high as you are comfortable setting it in order to reduce the chance of this (e.g. to `72h`) [in the repository permission configuration](https://docs.sourcegraph.com/admin/repo/permissions).\n"
 
-	pageExplanation := `Enter your inputs below and the page will calculate an estimate for what deployment you should start out with, then later [learn more about how Sourcegraph scales](https://docs.sourcegraph.com/admin/install/kubernetes/scale).`
-	defaultDeployment := `Our deployment supports instances with up to 1500 users and about 1500 repositories with one monorepo that is less than 5GB by default.`
+	pageExplanation := `> Enter your inputs below and the page will calculate an estimate for what deployment you should start out with, then later [learn more about how Sourcegraph scales](https://docs.sourcegraph.com/admin/install/kubernetes/scale).`
+
+	defaultDeployment := `> Our deployment supports instances with up to 1500 users and about 1500 repositories with one monorepo that is less than 5GB by default.`
 
 	howToApplyRelicasResources := "> In a docker-compose deployment, edit your `docker-compose.yml` file and set `cpus` and `mem_limit` to the limits shown above.\n"
 	howToApplyRelicasResources += ">\n"
@@ -225,7 +226,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 			&markdown{Content: []byte(repoPermissionsNote)},
 		),
 		elem.Details(
-			elem.Summary(vecty.Text("Copy this estimate as Markdown")),
+			elem.Summary(vecty.Text("Export result as as Markdown")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),

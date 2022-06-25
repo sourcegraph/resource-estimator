@@ -1,6 +1,6 @@
 package scaling
 
-// We are using the data gathered from different existing deployments as references for the estimations:
+// We are using the data gathered from different existing deployments as references for the estimates:
 // https://docs.google.com/spreadsheets/d/1N7X_OXDwKk0QSR2Ghbj7ZhjVrQXcMNj-yC8mF1amBi4/edit?usp=sharing
 
 var References = []ServiceScale{
@@ -10,8 +10,8 @@ var References = []ServiceScale{
 		ServiceName:   "frontend",
 		ScalingFactor: ByEngagedUsers, // UsersRange = {5, 10000}
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: UsersRange.Max}, // estimation
-			{Replicas: 3, CPU: Resource{4, 8}, MemoryGB: Resource{8, 16}, Value: 5000},           // estimation
+			{Replicas: 5, CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: UsersRange.Max}, // estimate
+			{Replicas: 3, CPU: Resource{4, 8}, MemoryGB: Resource{8, 16}, Value: 5000},           // estimate
 			{Replicas: 3, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2100},            // existing deployment: #4
 			{Replicas: 2, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2050},            // existing deployment: #45
 			{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: UsersRange.Min},  // default for instance with <2000 users without code-insight
@@ -23,14 +23,14 @@ var References = []ServiceScale{
 		ServiceName:   "gitserver",
 		ScalingFactor: ByUserRepoSumRatio,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: UserRepoSumRatioRange.Max}, // estimation
-			{Replicas: 4, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: 150},                       // estimation
+			{Replicas: 5, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: UserRepoSumRatioRange.Max}, // estimate
+			{Replicas: 4, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: 150},                       // estimate
 			{Replicas: 4, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 50},                          // existing deployment: dogfood
-			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 30},                          // estimation
-			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 20},                          // estimation
-			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 10},                          // estimation
-			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 5},                           // estimation
-			{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 2},                           // estimation
+			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 30},                          // estimate
+			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 20},                          // estimate
+			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 10},                          // estimate
+			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 5},                           // estimate
+			{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 2},                           // estimate
 			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: UserRepoSumRatioRange.Min},     // default for instance with <4000 repos
 		},
 	},
@@ -72,7 +72,7 @@ var References = []ServiceScale{
 		ServiceName:   "searcher",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // estimation
+			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // estimate
 			{Replicas: 6, Value: 25000},                        // existing deployment: #4 & 12
 			{Replicas: 4, Value: 14000},                        // existing deployment: #51
 			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
@@ -84,7 +84,7 @@ var References = []ServiceScale{
 		ServiceName:   "searcher",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Max},   // estimation
+			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Max},   // estimate
 			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: 25000},                          // existing deployment: #4
 			{CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: 4000},                          // existing deployment: #47
 			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: AverageRepositoriesRange.Min}, // bare minimum
@@ -97,9 +97,9 @@ var References = []ServiceScale{
 		ServiceName:   "symbols",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // estimation
-			{Replicas: 3, Value: 25000},                        // estimation
-			{Replicas: 2, Value: 4000},                         // estimation
+			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // estimate
+			{Replicas: 3, Value: 25000},                        // estimate
+			{Replicas: 2, Value: 4000},                         // estimate
 			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
@@ -107,8 +107,8 @@ var References = []ServiceScale{
 		ServiceName:   "symbols",
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: LargeMonoreposRange.Max},  // estimation
-			{CPU: Resource{2, 4}, MemoryGB: Resource{2, 8}, Value: 2},                         // estimation
+			{CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: LargeMonoreposRange.Max},  // estimate
+			{CPU: Resource{2, 4}, MemoryGB: Resource{2, 8}, Value: 2},                         // estimate
 			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: LargeMonoreposRange.Min}, // bare minimum
 		},
 	},
@@ -123,7 +123,7 @@ var References = []ServiceScale{
 		ServiceName:   "syntect-server",
 		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{2, 8}, MemoryGB: Resource{6, 12}, Value: UsersRange.Max}, // estimation
+			{Replicas: 1, CPU: Resource{2, 8}, MemoryGB: Resource{6, 12}, Value: UsersRange.Max}, // estimate
 			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: 5000},           // existing deployment: average between 27 and
 			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: UsersRange.Min}, // bare minimum
 		},
@@ -134,8 +134,8 @@ var References = []ServiceScale{
 		ServiceName:   "worker",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 16}, Value: AverageRepositoriesRange.Max}, // estimation
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 4000},                          // estimation
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 16}, Value: AverageRepositoriesRange.Max}, // estimate
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 4000},                          // estimate
 			{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
@@ -145,8 +145,8 @@ var References = []ServiceScale{
 		ServiceName:   "zoekt-indexserver",
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []ReferencePoint{
-			{MemoryGB: Resource{16, 16}, Value: LargeMonoreposRange.Max}, // estimation
-			{MemoryGB: Resource{16, 16}, Value: 5},                       // estimation
+			{MemoryGB: Resource{16, 16}, Value: LargeMonoreposRange.Max}, // estimate
+			{MemoryGB: Resource{16, 16}, Value: 5},                       // estimate
 			{MemoryGB: Resource{8, 8}, Value: LargeMonoreposRange.Min},   // bare minimum
 		},
 	},
@@ -156,7 +156,7 @@ var References = []ServiceScale{
 		ServiceName:   "zoekt-indexserver",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 0, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Max}, // estimation: at 50k repos the instance will have 4 replics so 8CPU limit per replica should be enough
+			{Replicas: 0, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Max}, // estimate: at 50k repos the instance will have 4 replics so 8CPU limit per replica should be enough
 			{Replicas: 0, CPU: Resource{4, 8}, Value: 14000},                        // existing deployment: #26 - 16 CPU / 2 replicas = 8
 			{Replicas: 0, CPU: Resource{4, 8}, Value: 1500},                         // existing deployment: #44
 			{Replicas: 0, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Min}, // bare minimum
@@ -181,7 +181,7 @@ var References = []ServiceScale{
 		ServiceName:   "zoekt-webserver",
 		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{8, 16}, Value: UsersRange.Max}, // estimation
+			{CPU: Resource{8, 16}, Value: UsersRange.Max}, // estimate
 			{CPU: Resource{6, 12}, Value: 15000},          // existing deployment: #51
 			{CPU: Resource{4, 8}, Value: 2100},            // existing deployment: #44
 			{CPU: Resource{.5, 2}, Value: UsersRange.Min}, // bare minimum
