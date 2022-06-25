@@ -184,7 +184,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 	repoPermissionsNote += "> We suggest setting your `authorization` `ttl` values as high as you are comfortable setting it in order to reduce the chance of this (e.g. to `72h`) [in the repository permission configuration](https://docs.sourcegraph.com/admin/repo/permissions).\n"
 
 	pageExplanation := `Enter your inputs below and the page will calculate an estimate for what deployment you should start out with, then later [learn more about how Sourcegraph scales](https://docs.sourcegraph.com/admin/install/kubernetes/scale).`
-	pageNote := `Our deployment supports instances with up to 1500 users and about 1500 repositories with one monorepo that is less than 5GB by default.`
+	defaultDeployment := `Our deployment supports instances with up to 1500 users and about 1500 repositories with one monorepo that is less than 5GB by default.`
 
 	howToApplyRelicasResources := "> In a docker-compose deployment, edit your `docker-compose.yml` file and set `cpus` and `mem_limit` to the limits shown above.\n"
 	howToApplyRelicasResources += ">\n"
@@ -194,12 +194,16 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
-		elem.Heading1(vecty.Text("Sourcegraph resource estimator")),
+		elem.Heading1(vecty.Text("Sourcegraph Resource Estimator")),
 		&markdown{Content: []byte(pageExplanation)},
-		&markdown{Content: []byte(pageNote)},
 		p.inputs(),
 		&markdown{Content: estimate},
 		elem.Heading3(vecty.Text("Additional information")),
+		elem.Details(
+			elem.Summary(vecty.Text("Default deployment size")),
+			elem.Break(),
+			&markdown{Content: []byte(defaultDeployment)},
+		),
 		elem.Details(
 			elem.Summary(vecty.Text("What is engagement rate")),
 			elem.Break(),
