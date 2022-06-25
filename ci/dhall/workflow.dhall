@@ -1,5 +1,3 @@
-let GitHubActions = (./imports.dhall).GitHubActions
-
 let shellcheck = ./jobs/shellcheck.dhall
 
 let shfmt = ./jobs/shfmt.dhall
@@ -17,6 +15,8 @@ let prettier = ./jobs/prettier.dhall
 let golangciLint = ./jobs/golangci-lint.dhall
 
 let wasmBuild = ./jobs/wasm-build.dhall
+
+let GitHubActions = (./imports.dhall).GitHubActions
 
 in  GitHubActions.Workflow::{
     , name = "CI"
