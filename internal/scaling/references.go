@@ -156,10 +156,11 @@ var References = []ServiceScale{
 		ServiceName:   "zoekt-indexserver",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 0, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Max}, // estimate: at 50k repos the instance will have 4 replics so 8CPU limit per replica should be enough
-			{Replicas: 0, CPU: Resource{4, 8}, Value: 14000},                        // existing deployment: #26 - 16 CPU / 2 replicas = 8
-			{Replicas: 0, CPU: Resource{4, 8}, Value: 1500},                         // existing deployment: #44
-			{Replicas: 0, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Min}, // bare minimum
+			{Replicas: 4, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Max}, // estimate: at 50k repos the instance will have 4 replics so 8CPU limit per replica should be enough
+			{Replicas: 2, CPU: Resource{4, 8}, Value: 14000},                        // existing deployment: #26 - 16 CPU / 2 replicas = 8
+			{Replicas: 1, CPU: Resource{4, 8}, Value: 10000},                        // existing deployment: #37
+			{Replicas: 1, CPU: Resource{4, 8}, Value: 1500},                         // existing deployment: #44
+			{Replicas: 1, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
 
@@ -171,7 +172,7 @@ var References = []ServiceScale{
 		ReferencePoints: []ReferencePoint{
 			{Replicas: 4, MemoryGB: Resource{25, 50}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
 			{Replicas: 2, MemoryGB: Resource{8, 16}, Value: 14000},                         // existing deployment: #26
-			{Replicas: 1, MemoryGB: Resource{25, 50}, Value: 1500},                         // existing deployment: #44
+			{Replicas: 1, MemoryGB: Resource{30, 60}, Value: 10000},                        // existing deployment: #37
 			{Replicas: 1, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Min},   // bare minimum
 		},
 	},

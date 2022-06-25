@@ -209,7 +209,7 @@ func (e *Estimate) Calculate() *Estimate {
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
 			value = float64(e.EngagedUsers)
-			if e.CodeInsight == "enable" {
+			if e.CodeInsight == "Enable" {
 				value = float64(e.EngagedUsers + 2000)
 			}
 		case ByAverageRepositories:
@@ -306,15 +306,17 @@ func (e *Estimate) Calculate() *Estimate {
 
 func (e *Estimate) Result() []byte {
 	var buf bytes.Buffer
-
 	// Summary of the output
 	fmt.Fprintf(&buf, "### Estimate summary\n")
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
-	fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
-	if e.DeploymentType == "kubernetes" {
-		fmt.Fprintf(&buf, "* **Note:** Use default values for services not listed below .\n")
+	if !e.ContactSupport {
+		fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
+		fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
+	} else {
+		fmt.Fprintf(&buf, "* **Estimated total CPUs:** not available\n")
+		fmt.Fprintf(&buf, "* **Estimated total memory:** not available\n")
 	}
+	fmt.Fprintf(&buf, "* **Note:** Use the default values for services not listed below .\n")
 	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
 		if e.DeploymentType == "docker-compose" {
 			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
@@ -341,97 +343,95 @@ func (e *Estimate) Result() []byte {
 		}
 	}
 	fmt.Fprintf(&buf, "\n")
-
-	// Service replicas & resources
-	fmt.Fprintf(&buf, "### Service replicas & resources\n")
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "| Service | Replicas | CPU requests | CPU limits | Memory requests | Memory limits | Note |\n")
-	fmt.Fprintf(&buf, "|---------|----------|--------------|------------|-----------------|---------------|------|\n")
+	if e.ContactSupport {
+		fmt.Fprintf(&buf, "> **IMPORTANT:** Please [contact support](mailto:support@sourcegraph.com) for the service(s) that marked as not available.\n")
+		fmt.Fprintf(&buf, "\n")
+	}
+	fmt.Fprintf(&buf, "| Service | Replicas | CPU requests | CPU limits | Memory requests | Memory limits |\n")
+	fmt.Fprintf(&buf, "|---------|:----------:|:--------------:|:------------:|:-----------------:|:---------------:|\n")
 
 	var names []string
 	for service := range e.Services {
 		names = append(names, service)
 	}
 	sort.Strings(names)
+
 	for _, service := range names {
 		ref := e.Services[service]
 		def := defaults[e.DeploymentType][service]
 		ref = ref.round()
 		plus := ""
-		note := "-"
 
-		if ref.ContactSupport {
-			plus = "+"
-			note = "[contact support](mailto:support@sourcegraph.com)"
-		}
+		var replicas = "n/a"
+		var cpuRequest = "n/a"
+		var cpuLimit = "n/a"
+		var memoryGBRequest = "n/a"
+		var memoryGBLimit = "n/a"
 
-		var replicas string
-		if ref.Replicas == def.Replicas {
-			replicas = fmt.Sprint(ref.Replicas, plus)
-		} else {
-			replicas = fmt.Sprint("**_", ref.Replicas, plus, "ꜝ_**")
-		}
+		if !ref.ContactSupport {
+			if ref.Replicas == def.Replicas {
+				replicas = fmt.Sprint(ref.Replicas, plus)
+			} else {
+				replicas = fmt.Sprint(ref.Replicas, plus, "ꜝ")
+			}
 
-		var cpuRequest string
-		if ref.CPU.Request == def.CPU.Request {
-			cpuRequest = fmt.Sprint(ref.CPU.Request, plus)
-		} else {
-			cpuRequest = fmt.Sprint("**_", ref.CPU.Request, plus, "ꜝ_**")
-		}
+			if ref.CPU.Request == def.CPU.Request {
+				cpuRequest = fmt.Sprint(ref.CPU.Request, plus)
+			} else {
+				cpuRequest = fmt.Sprint(ref.CPU.Request, "ꜝ")
+			}
 
-		var cpuLimit string
-		if ref.CPU.Limit == def.CPU.Limit {
-			cpuLimit = fmt.Sprint(ref.CPU.Limit, plus)
-		} else {
-			cpuLimit = fmt.Sprint("**_", ref.CPU.Limit, plus, "ꜝ_**")
-		}
+			if ref.CPU.Limit == def.CPU.Limit {
+				cpuLimit = fmt.Sprint(ref.CPU.Limit, plus)
+			} else {
+				cpuLimit = fmt.Sprint(ref.CPU.Limit, plus, "ꜝ")
+			}
 
-		var memoryGBRequest string
-		if ref.MemoryGB.Request == def.MemoryGB.Request {
-			memoryGBRequest = fmt.Sprint(ref.MemoryGB.Request, "g", plus)
-		} else {
-			memoryGBRequest = fmt.Sprint("**_", ref.MemoryGB.Request, "g", plus, "ꜝ_**")
-		}
+			if ref.MemoryGB.Request == def.MemoryGB.Request {
+				memoryGBRequest = fmt.Sprint(ref.MemoryGB.Request, "g", plus)
+			} else {
+				memoryGBRequest = fmt.Sprint("", ref.MemoryGB.Request, "g", plus, "ꜝ")
+			}
 
-		var memoryGBLimit string
-		if ref.MemoryGB.Limit == def.MemoryGB.Limit {
-			memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus)
-		} else {
-			memoryGBLimit = fmt.Sprint("**_", ref.MemoryGB.Limit, "g", plus, "ꜝ_**")
-		}
+			if ref.MemoryGB.Limit == def.MemoryGB.Limit {
+				memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus)
+			} else {
+				memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus, "ꜝ")
+			}
 
-		if e.DeploymentType == "docker-compose" {
-			cpuRequest = "-"
-			memoryGBRequest = "-"
+			if e.DeploymentType == "docker-compose" {
+				cpuRequest = "-"
+				memoryGBRequest = "-"
+			}
 		}
 
 		fmt.Fprintf(
 			&buf,
-			"| %v | %v | %v | %v | %v | %v | %v |\n",
+			"| %v | %v | %v | %v | %v | %v |\n",
 			service,
 			replicas,
 			cpuRequest,
 			cpuLimit,
 			memoryGBRequest,
 			memoryGBLimit,
-			note,
 		)
 	}
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "> <small>_Bold/italic and ꜝ indicate the value is modified from the default value._</small>\n")
+	fmt.Fprintf(&buf, "> ꜝ<small>: This is a non-default value.</small>\n")
 	fmt.Fprintf(&buf, "\n")
 
 	// Storage Size
 	fmt.Fprintf(&buf, "### Storage\n")
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
-	fmt.Fprintf(&buf, "|---------|------------|------|\n")
-	fmt.Fprintf(&buf, "| codeinsights-db | 200g | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
-	fmt.Fprintf(&buf, "| codeintel-db | 200g | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repos indexed by Rockskip is required. |\n")
-	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "gb"))
-	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF file. |\n", fmt.Sprint(e.LargestIndexSize, "gb+"))
-	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "gb"))
-	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multipled by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "gb"))
+	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
+	fmt.Fprintf(&buf, "| codeinsights-db | 200GB | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
+	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repos indexed by Rockskip is required. |\n")
+	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GB"))
+	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
+	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "GB"))
+	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multipled by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "GB"))
 
 	fmt.Fprintf(&buf, "\n")
 
@@ -439,9 +439,9 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "### Ephemeral storage\n")
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
-	fmt.Fprintf(&buf, "|---------|------------|------|\n")
-	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "gb"))
-	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repo. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "gb"))
+	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
+	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "GB"))
+	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repo. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GB"))
 
 	fmt.Fprintf(&buf, "\n")
 

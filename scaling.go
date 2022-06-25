@@ -18,15 +18,15 @@ func main() {
 	vecty.SetTitle("Resource estimator - Sourcegraph")
 	err := vecty.RenderInto("#root", &MainView{
 		deploymentType:    "type",
-		users:             100,
+		users:             300,
 		engagementRate:    100,
-		repositories:      1800,
-		reposize:          150,
-		largeMonorepos:    1,
-		largestRepoSize:   7,
+		repositories:      5000,
+		reposize:          500,
+		largeMonorepos:    5,
+		largestRepoSize:   5,
 		largestIndexSize:  3,
-		codeintelEnabled:  "enable",
-		codeinsightEabled: "enable",
+		codeintelEnabled:  "Enable",
+		codeinsightEabled: "Enable",
 	})
 	if err != nil {
 		panic(err)
@@ -114,7 +114,6 @@ func (p *MainView) radioInput(groupName string, options []string, handler func(e
 
 func (p *MainView) inputs() vecty.ComponentOrHTML {
 	return vecty.List{
-		elem.Heading3(vecty.Text("Inputs")),
 		elem.Div(
 			vecty.Markup(vecty.Style("padding", "20px"),
 				vecty.Style("border", "1px solid")),
@@ -134,15 +133,15 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.repositories, scaling.RepositoriesRange, 5),
-			p.numberInput("g - size of all repositories", func(e *vecty.Event) {
+			p.numberInput("GB - the size of all repositories", func(e *vecty.Event) {
 				p.reposize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.reposize, scaling.TotalRepoSizeRange, 1),
-			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 1g)"), func(e *vecty.Event) {
+			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 1GB)"), func(e *vecty.Event) {
 				p.largeMonorepos, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largeMonorepos, scaling.LargeMonoreposRange, 1),
-			p.numberInput("g - size of the largest repository", func(e *vecty.Event) {
+			p.numberInput("GB - the size of the largest repository", func(e *vecty.Event) {
 				p.largestRepoSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestRepoSize, scaling.LargestRepoSizeRange, 1),
@@ -154,7 +153,7 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.codeintelEnabled = e.Value.Get("target").Get("value").String()
 				vecty.Rerender(p)
 			}),
-			p.numberInput("g - size of the largest LSIF index file", func(e *vecty.Event) {
+			p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
 				p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1),
@@ -177,13 +176,17 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		CodeInsight:      p.codeinsightEabled,
 	}).Calculate().Result()
 
+	pageExplanation := `Updating the form below will recalculate an estimate for the resources you can use to configure your Sourcegraph deployment.`
+
+	useDefault := `Use the default values for services that are not listed below.`
+
+	howSourcegraphScales := `[Click here to learn more about how Sourcegraph scales.](https://docs.sourcegraph.com/admin/install/kubernetes/scale)`
+
 	explainEngagementRate := "> Engagement rate refers to the percentage of users who use Sourcegraph regularly. It is generally used for existing deployments to estimate resources."
 
 	repoPermissionsNote := "> Repository permissions on Sourcegraph can have a noticeable impact on search performance if you have a large number of users and/or repositories on your code host.\n"
 	repoPermissionsNote += ">\n"
 	repoPermissionsNote += "> We suggest setting your `authorization` `ttl` values as high as you are comfortable setting it in order to reduce the chance of this (e.g. to `72h`) [in the repository permission configuration](https://docs.sourcegraph.com/admin/repo/permissions).\n"
-
-	pageExplanation := `> Enter your inputs below and the page will calculate an estimate for what deployment you should start out with, then later [learn more about how Sourcegraph scales](https://docs.sourcegraph.com/admin/install/kubernetes/scale).`
 
 	defaultDeployment := `> Our deployment supports instances with up to 1500 users and about 1500 repositories with one monorepo that is less than 5GB by default.`
 
@@ -197,6 +200,8 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		vecty.Markup(vecty.Class("estimator")),
 		elem.Heading1(vecty.Text("Sourcegraph Resource Estimator")),
 		&markdown{Content: []byte(pageExplanation)},
+		&markdown{Content: []byte(useDefault)},
+		&markdown{Content: []byte(howSourcegraphScales)},
 		p.inputs(),
 		&markdown{Content: estimate},
 		elem.Heading3(vecty.Text("Additional information")),

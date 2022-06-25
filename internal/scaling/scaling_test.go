@@ -25,8 +25,8 @@ func TestEstimate(t *testing.T) {
 			LargestIndexSize: 1,
 			Users:            100,
 			EngagementRate:   50,
-			CodeIntel:        "enable",
-			CodeInsight:      "enable",
+			CodeIntel:        "Enable",
+			CodeInsight:      "Enable",
 		},
 	}, {
 		Name: "monorepo",
@@ -39,14 +39,14 @@ func TestEstimate(t *testing.T) {
 			LargestIndexSize: 1,
 			Users:            100,
 			EngagementRate:   50,
-			CodeIntel:        "enable",
-			CodeInsight:      "enable",
+			CodeIntel:        "Enable",
+			CodeInsight:      "Enable",
 		},
 	}}
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			got := string(tc.Estimate.Calculate().Markdown())
+			got := string(tc.Estimate.Calculate().Result())
 			autogold.Equal(t, got)
 		})
 	}
@@ -61,7 +61,7 @@ func TestInvariants(t *testing.T) {
 
 		if e.Services["zoekt-webserver"].Replicas != e.Services["zoekt-indexserver"].Replicas {
 			t.Log("zoekt-webserver replicas != zoekt-indexserver replicas but they live in the same pod")
-			t.Log(string(e.Markdown()))
+			t.Log(string(e.Result()))
 			return false
 		}
 
