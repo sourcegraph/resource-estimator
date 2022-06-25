@@ -1,7 +1,8 @@
 package scaling
 
-// References represents the data from a spreadsheet of known good deployment configurations:
+// We are using the data gathered from different existing deployments as references for the estimations:
 // https://docs.google.com/spreadsheets/d/1N7X_OXDwKk0QSR2Ghbj7ZhjVrQXcMNj-yC8mF1amBi4/edit?usp=sharing
+
 var References = []ServiceScale{
 	// Frontend scales based on the number of engaged users.
 	// Add 2000 users to user count if code-insight is enabled
@@ -9,10 +10,10 @@ var References = []ServiceScale{
 		ServiceName:   "frontend",
 		ScalingFactor: ByEngagedUsers, // UsersRange = {5, 10000}
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: UsersRange.Max}, // projection
-			{Replicas: 3, CPU: Resource{4, 8}, MemoryGB: Resource{8, 16}, Value: 5000},           // projection
-			{Replicas: 3, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2100},            // current data: #4
-			{Replicas: 2, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2050},            /// current data: #45
+			{Replicas: 5, CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: UsersRange.Max}, // estimation
+			{Replicas: 3, CPU: Resource{4, 8}, MemoryGB: Resource{8, 16}, Value: 5000},           // estimation
+			{Replicas: 3, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2100},            // existing deployment: #4
+			{Replicas: 2, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2050},            // existing deployment: #45
 			{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: UsersRange.Min},  // default for instance with <2000 users without code-insight
 		},
 	},
@@ -22,29 +23,30 @@ var References = []ServiceScale{
 		ServiceName:   "gitserver",
 		ScalingFactor: ByUserRepoSumRatio,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: UserRepoSumRatioRange.Max}, // projection
-			{Replicas: 4, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: 150},                       // projection
-			{Replicas: 4, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 50},                          // data from dogfood
-			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 30},                          // projection
-			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 20},                          // projection
-			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 10},                          // projection
-			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 5},                           // projection
-			{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 2},                           // projection
+			{Replicas: 5, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: UserRepoSumRatioRange.Max}, // estimation
+			{Replicas: 4, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: 150},                       // estimation
+			{Replicas: 4, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 50},                          // existing deployment: dogfood
+			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 30},                          // estimation
+			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 20},                          // estimation
+			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 10},                          // estimation
+			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 5},                           // estimation
+			{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 2},                           // estimation
 			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: UserRepoSumRatioRange.Min},     // default for instance with <4000 repos
 		},
 	},
 
-	// postgres database
+	// Memory usage depends on the number of active users and service-connections
 	{
 		ServiceName:   "pgsql",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{7, 7}, MemoryGB: Resource{32, 32}, Value: AverageRepositoriesRange.Max}, // dogfood
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{16, 16}, Value: 25000},                        // data
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: 4000},                           // projection
+			{Replicas: 1, CPU: Resource{7, 7}, MemoryGB: Resource{32, 32}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{16, 16}, Value: 25000},                        // existing deployment: #4
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: 4000},                           // existing deployment: #43
 			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}, Value: AverageRepositoriesRange.Min},   // bare minimum
 		},
 	},
+
 	// The entire index must be read into memory to be correlated.
 	// Scale vertically when the uploaded index is too large to be processed without OOMing the worker.
 	// Scale horizontally to process a higher throughput of indexes.
@@ -70,9 +72,9 @@ var References = []ServiceScale{
 		ServiceName:   "searcher",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // projection
-			{Replicas: 6, Value: 25000},                        // current data: #4 & 12
-			{Replicas: 4, Value: 14000},                        // current data: #51
+			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // estimation
+			{Replicas: 6, Value: 25000},                        // existing deployment: #4 & 12
+			{Replicas: 4, Value: 14000},                        // existing deployment: #51
 			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
@@ -82,9 +84,9 @@ var References = []ServiceScale{
 		ServiceName:   "searcher",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Max},   // speculative
-			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: 25000},                          // current data: #4
-			{CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: 4000},                          // current data: #47
+			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Max},   // estimation
+			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: 25000},                          // existing deployment: #4
+			{CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: 4000},                          // existing deployment: #47
 			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
@@ -95,9 +97,9 @@ var References = []ServiceScale{
 		ServiceName:   "symbols",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // projection
-			{Replicas: 3, Value: 25000},                        // projection
-			{Replicas: 2, Value: 4000},                         // projection
+			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // estimation
+			{Replicas: 3, Value: 25000},                        // estimation
+			{Replicas: 2, Value: 4000},                         // estimation
 			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
@@ -105,8 +107,8 @@ var References = []ServiceScale{
 		ServiceName:   "symbols",
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: LargeMonoreposRange.Max},  // projection
-			{CPU: Resource{2, 4}, MemoryGB: Resource{2, 8}, Value: 5},                         // projection
+			{CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: LargeMonoreposRange.Max},  // estimation
+			{CPU: Resource{2, 4}, MemoryGB: Resource{2, 8}, Value: 2},                         // estimation
 			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: LargeMonoreposRange.Min}, // bare minimum
 		},
 	},
@@ -121,8 +123,8 @@ var References = []ServiceScale{
 		ServiceName:   "syntect-server",
 		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{2, 8}, MemoryGB: Resource{6, 12}, Value: UsersRange.Max}, // speculative
-			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: 5000},           // current data: average between 27 and
+			{Replicas: 1, CPU: Resource{2, 8}, MemoryGB: Resource{6, 12}, Value: UsersRange.Max}, // estimation
+			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: 5000},           // existing deployment: average between 27 and
 			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: UsersRange.Min}, // bare minimum
 		},
 	},
@@ -132,59 +134,57 @@ var References = []ServiceScale{
 		ServiceName:   "worker",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 16}, Value: AverageRepositoriesRange.Max}, // projection
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 4000},                          // projection
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 16}, Value: AverageRepositoriesRange.Max}, // estimation
+			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 4000},                          // estimation
 			{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
 
-	// zoekt-indexserver memory usage scales based on whether it must index large monorepos. Its
-	// CPU usage and replicas scale based on the number of average repos it must index.
+	// zoekt-indexserver memory usage scales based on whether it must index large monorepos
 	{
 		ServiceName:   "zoekt-indexserver",
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []ReferencePoint{
-			{MemoryGB: Resource{16, 16}, Value: LargeMonoreposRange.Max}, // speculative
-			{MemoryGB: Resource{16, 16}, Value: 2},                       // from row 9 of spreadsheet
-			{MemoryGB: Resource{50, 50}, Value: LargeMonoreposRange.Min}, // bare minimum
+			{MemoryGB: Resource{16, 16}, Value: LargeMonoreposRange.Max}, // estimation
+			{MemoryGB: Resource{16, 16}, Value: 5},                       // estimation
+			{MemoryGB: Resource{8, 8}, Value: LargeMonoreposRange.Min},   // bare minimum
 		},
 	},
+	// CPU usage and replicas scale based on the number of average repos it must index as it indexes one repo at a time
+	// Set replica number to 0 as it will be synced with the replica number for webserver
 	{
 		ServiceName:   "zoekt-indexserver",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 2, CPU: Resource{6, 12}, Value: AverageRepositoriesRange.Max}, // speculative based on row 8 of spreadsheet
-			{Replicas: 2, CPU: Resource{4, 8}, Value: 17000},                         // derived from row 9 of spreadsheet
-			{Replicas: 1, CPU: Resource{4, 8}, Value: 1500},                          // current data: #44
-			{Replicas: 1, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Min},  // bare minimum
+			{Replicas: 0, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Max}, // estimation: at 50k repos the instance will have 4 replics so 8CPU limit per replica should be enough
+			{Replicas: 0, CPU: Resource{4, 8}, Value: 14000},                        // existing deployment: #26 - 16 CPU / 2 replicas = 8
+			{Replicas: 0, CPU: Resource{4, 8}, Value: 1500},                         // existing deployment: #44
+			{Replicas: 0, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
 
 	// zoekt-webserver memory usage and replicas scale based on how many average repositories it is
-	// serving (roughly 2/3 the size of the actual repos is the memory usage). Its CPU usage is
-	// based on the number of users it serves (and the size of the index, but we do not account for
-	// that here and instead assume a correlation between # users and # repos which is generally
-	// true.)
-	// max MEM = 64 (max MEM) - 1 (jaeger agent) - 1.5 (system CPU) = 61
+	// serving (roughly 2/3 the size of the actual repos is the memory usage).
 	{
 		ServiceName:   "zoekt-webserver",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, MemoryGB: Resource{61, 61}, Value: AverageRepositoriesRange.Max}, // dogfood
-			{Replicas: 4, MemoryGB: Resource{61, 61}, Value: 25000},                        // current data: #51
-			{Replicas: 2, MemoryGB: Resource{32, 32}, Value: 4500},                         // current data: #55
-			{Replicas: 1, MemoryGB: Resource{50, 50}, Value: 1500},                         // current data: #44
+			{Replicas: 4, MemoryGB: Resource{25, 50}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
+			{Replicas: 2, MemoryGB: Resource{8, 16}, Value: 14000},                         // existing deployment: #26
+			{Replicas: 1, MemoryGB: Resource{25, 50}, Value: 1500},                         // existing deployment: #44
 			{Replicas: 1, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Min},   // bare minimum
 		},
 	},
+	// CPU usage is based on the number of users it serves (and the size of the index, but we do not account for
+	// that here and instead assume a correlation between # users and # repos which is generally true.)
 	{
 		ServiceName:   "zoekt-webserver",
 		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{16, 16}, Value: UsersRange.Max}, // projection
-			{CPU: Resource{12, 12}, Value: 15000},          // current data: #51
-			{CPU: Resource{8, 8}, Value: 2100},             // current data: #44
-			{CPU: Resource{.5, 2}, Value: UsersRange.Min},  // bare minimum
+			{CPU: Resource{8, 16}, Value: UsersRange.Max}, // estimation
+			{CPU: Resource{6, 12}, Value: 15000},          // existing deployment: #51
+			{CPU: Resource{4, 8}, Value: 2100},            // existing deployment: #44
+			{CPU: Resource{.5, 2}, Value: UsersRange.Min}, // bare minimum
 		},
 	},
 }

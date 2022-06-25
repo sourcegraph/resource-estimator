@@ -17,20 +17,30 @@ func TestEstimate(t *testing.T) {
 	}{{
 		Name: "default",
 		Estimate: scaling.Estimate{
-			DeploymentType: "estimated",
-			Repositories:   300,
-			LargeMonorepos: 0,
-			Users:          100,
-			EngagementRate: 50,
+			DeploymentType:   "docker-compose",
+			Repositories:     300,
+			TotalRepoSize:    30,
+			LargeMonorepos:   0,
+			LargestRepoSize:  2,
+			LargestIndexSize: 1,
+			Users:            100,
+			EngagementRate:   50,
+			CodeIntel:        "enable",
+			CodeInsight:      "enable",
 		},
 	}, {
 		Name: "monorepo",
 		Estimate: scaling.Estimate{
-			DeploymentType: "estimated",
-			Repositories:   0,
-			LargeMonorepos: 1,
-			Users:          100,
-			EngagementRate: 50,
+			DeploymentType:   "docker-compose",
+			Repositories:     0,
+			TotalRepoSize:    30,
+			LargeMonorepos:   1,
+			LargestRepoSize:  2,
+			LargestIndexSize: 1,
+			Users:            100,
+			EngagementRate:   50,
+			CodeIntel:        "enable",
+			CodeInsight:      "enable",
 		},
 	}}
 
@@ -67,10 +77,14 @@ func TestInvariants(t *testing.T) {
 	config := &quick.Config{
 		Values: func(args []reflect.Value, r *rand.Rand) {
 			e := &scaling.Estimate{
-				Repositories:   randRange(r, scaling.RepositoriesRange),
-				LargeMonorepos: randRange(r, scaling.LargeMonoreposRange),
-				Users:          randRange(r, scaling.UsersRange),
-				EngagementRate: randRange(r, scaling.EngagementRateRange),
+				Repositories:     randRange(r, scaling.RepositoriesRange),
+				LargeMonorepos:   randRange(r, scaling.LargeMonoreposRange),
+				TotalRepoSize:    randRange(r, scaling.TotalRepoSizeRange),
+				LargestRepoSize:  randRange(r, scaling.LargestRepoSizeRange),
+				LargestIndexSize: randRange(r, scaling.LargestIndexSizeRange),
+				Users:            randRange(r, scaling.UsersRange),
+				EngagementRate:   randRange(r, scaling.EngagementRateRange),
+				UserRepoSumRatio: randRange(r, scaling.UserRepoSumRatioRange),
 			}
 			args[0] = reflect.ValueOf(e)
 		},

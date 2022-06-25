@@ -12,6 +12,7 @@ type Factor int
 const (
 	ByEngagedUsers        Factor = iota
 	ByAverageRepositories Factor = iota
+	ByTotalRepoSize       Factor = iota
 	ByLargeMonorepos      Factor = iota
 	ByLargestRepoSize     Factor = iota
 	ByLargestIndexSize    Factor = iota
@@ -102,7 +103,7 @@ var (
 	UsersRange               = Range{5, 10000}
 	RepositoriesRange        = Range{5, 50000}
 	TotalRepoSizeRange       = Range{1, 5000}
-	LargeMonoreposRange      = Range{0, 10}
+	LargeMonoreposRange      = Range{0, 20}
 	LargestRepoSizeRange     = Range{0, 5000}
 	LargestIndexSizeRange    = Range{0, 100}
 	AverageRepositoriesRange = Range{
@@ -170,23 +171,24 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	Repositories     int
-	LargeMonorepos   int
-	TotalRepoSize    int
-	LargestRepoSize  int
-	LargestIndexSize int
-	Users            int
-	EngagementRate   int
 	DeploymentType   string // calculated if set to "docker-compose"
 	CodeIntel        string
 	CodeInsight      string
+	EngagementRate   int
+	Repositories     int
+	LargeMonorepos   int
+	LargestRepoSize  int
+	LargestIndexSize int
+	TotalRepoSize    int
+	Users            int
 
 	// calculated results
-	UserRepoSumRatio    int
-	EngagedUsers        int
 	AverageRepositories int
-	Services            map[string]ReferencePoint
 	ContactSupport      bool
+	EngagedUsers        int
+	IndexServerDiskSize int
+	Services            map[string]ReferencePoint
+	UserRepoSumRatio    int
 
 	// These fields are the sum of the _requests_ of all services in the deployment, plus 50% of
 	// the difference in limits. The thinking is that requests are often far too low as they do not
@@ -207,7 +209,7 @@ func (e *Estimate) Calculate() *Estimate {
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
 			value = float64(e.EngagedUsers)
-			if e.CodeInsight == "Yes" {
+			if e.CodeInsight == "enable" {
 				value = float64(e.EngagedUsers + 2000)
 			}
 		case ByAverageRepositories:
@@ -220,6 +222,8 @@ func (e *Estimate) Calculate() *Estimate {
 			value = float64(e.LargestIndexSize)
 		case ByUserRepoSumRatio:
 			value = float64(e.UserRepoSumRatio)
+		case ByTotalRepoSize:
+			value = float64(e.TotalRepoSize)
 		default:
 			panic("never here")
 		}
@@ -230,9 +234,24 @@ func (e *Estimate) Calculate() *Estimate {
 		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
 	}
 	if e.DeploymentType == "type" {
-		e.DeploymentType = "docker-compose"
+		e.DeploymentType = "kubernetes"
 	}
-
+	// Get index server disk size
+	// Typically the gitserver disk size multipled by the number of gitserver shards
+	// formula: size of gitserver (size of all repos x 120%) x gitserver replicas
+	// ref: https://github.com/sourcegraph/deploy-sourcegraph/blob/v3.41.0/base/indexed-search/indexed-search.StatefulSet.yaml#L84
+	switch {
+	case e.UserRepoSumRatio < 5:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100
+	case e.UserRepoSumRatio < 20:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 2
+	case e.UserRepoSumRatio < 30:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 3
+	case e.UserRepoSumRatio < int(UserRepoSumRatioRange.Max):
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 4
+	default:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 5
+	}
 	// Ensure we have the same replica counts for services that live in the
 	// same pod.
 	for _, pod := range pods {
@@ -285,37 +304,17 @@ func (e *Estimate) Calculate() *Estimate {
 	return e
 }
 
-func (e *Estimate) Markdown() []byte {
+func (e *Estimate) Result() []byte {
 	var buf bytes.Buffer
 
-	// Overview
-	fmt.Fprintf(&buf, "### Estimate overview\n")
+	// Summary of the output
+	fmt.Fprintf(&buf, "### Estimate summary\n")
 	fmt.Fprintf(&buf, "\n")
-	var engagedUsers string
-	if e.EngagedUsers > int(UsersRange.Max) {
-		engagedUsers = fmt.Sprint(UsersRange.Max, "+")
-	} else {
-		engagedUsers = fmt.Sprint(e.EngagedUsers)
-	}
-	var averageRepositories string
-	if e.AverageRepositories > int(AverageRepositoriesRange.Max) {
-		averageRepositories = fmt.Sprint(AverageRepositoriesRange.Max, "+")
-	} else {
-		averageRepositories = fmt.Sprint(e.AverageRepositories)
-	}
-	fmt.Fprintf(&buf, "* Estimated resources for %v engaged users and %v average-size repositories.\n", engagedUsers, averageRepositories)
-	if e.LargeMonorepos != 0 {
-		fmt.Fprintf(&buf, "* Assuming 1 large monorepo is roughly equal to %v average-size repositories.\n", MonorepoFactor)
-	}
-	if e.DeploymentType == "docker-compose" {
-		fmt.Fprintf(&buf, "* **Deployment type:** %v\n", e.DeploymentType)
-	} else {
-		fmt.Fprintf(&buf, "* <details><summary>**Deployment type:** %v</summary><br><blockquote>\n", e.DeploymentType)
-		fmt.Fprintf(&buf, "  <p>We recommend Kubernetes for any deployments requiring > 1 service replica, but docker-compose does support service replicas and can scale up with multiple replicas as long as you can provision a suffiently large single machine.</p>\n")
-		fmt.Fprintf(&buf, "  </blockquote></details>\n")
-	}
 	fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
 	fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
+	if e.DeploymentType == "kubernetes" {
+		fmt.Fprintf(&buf, "* **Note:** Use default values for services not listed below .\n")
+	}
 	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
 		if e.DeploymentType == "docker-compose" {
 			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
@@ -341,15 +340,6 @@ func (e *Estimate) Markdown() []byte {
 			fmt.Fprintf(&buf, "  </blockquote></details>\n")
 		}
 	}
-	fmt.Fprintf(&buf, "\n")
-	var totalRepoSize = e.TotalRepoSize * 2
-	// Disk Spaces
-	fmt.Fprintf(&buf, "### Disk Spaces\n")
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "* Your gitserver disk space must be at least %v GB.\n", fmt.Sprint(totalRepoSize))
-	fmt.Fprintf(&buf, "* Your pgsql disk space must be at least %v GB.\n", fmt.Sprint(totalRepoSize))
-	fmt.Fprintf(&buf, "* Your minio disk space must be larger than %v GB.\n", fmt.Sprint(e.LargestIndexSize))
-
 	fmt.Fprintf(&buf, "\n")
 
 	// Service replicas & resources
@@ -428,6 +418,60 @@ func (e *Estimate) Markdown() []byte {
 		)
 	}
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "_Bold/italic and ꜝ indicate the value is modified from the default. Services not listed here use the default values._")
+	fmt.Fprintf(&buf, "> <small>_Bold/italic and ꜝ indicate the value is modified from the default value._</small>\n")
+	fmt.Fprintf(&buf, "\n")
+
+	// Storage Size
+	fmt.Fprintf(&buf, "### Storage\n")
+	fmt.Fprintf(&buf, "\n")
+	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
+	fmt.Fprintf(&buf, "|---------|------------|------|\n")
+	fmt.Fprintf(&buf, "| codeinsights-db | 200g | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
+	fmt.Fprintf(&buf, "| codeintel-db | 200g | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repos indexed by Rockskip is required. |\n")
+	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "gb"))
+	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF file. |\n", fmt.Sprint(e.LargestIndexSize, "gb+"))
+	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "gb"))
+	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multipled by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "gb"))
+
+	fmt.Fprintf(&buf, "\n")
+
+	// Ephemeral Storage
+	fmt.Fprintf(&buf, "### Ephemeral storage\n")
+	fmt.Fprintf(&buf, "\n")
+	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
+	fmt.Fprintf(&buf, "|---------|------------|------|\n")
+	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "gb"))
+	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repo. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "gb"))
+
+	fmt.Fprintf(&buf, "\n")
+
+	// Scaling overview
+	fmt.Fprintf(&buf, "## Service overview\n")
+	fmt.Fprintf(&buf, "\n")
+	fmt.Fprintf(&buf, "| Service | Sescription |\n")
+	fmt.Fprintf(&buf, "|---------|------|\n")
+	fmt.Fprintf(&buf, "| cadvisor | A cAdvisor instance that exports container monitoring metrics scraped by Prometheus and visualized in Grafana |\n")
+	fmt.Fprintf(&buf, "| codeinsights-db | A PostgreSQL instance for storing code insights data |\n")
+	fmt.Fprintf(&buf, "| codeintel-db | A PostgreSQL instance for storing large-volume precise code intelligence data |\n")
+	fmt.Fprintf(&buf, "| frontend | Serves the web application, extensions, and graphQL services. Almost every service has a link back to the frontend, from which it gathers configuration updates. |\n")
+	fmt.Fprintf(&buf, "| github-proxy | Proxies all requests to github.com to keep track of rate limits and prevent triggering abuse mechanisms	|\n")
+	fmt.Fprintf(&buf, "| gitserver | Mirrors repositories from their code host. All other Sourcegraph services talk to gitserver when they need data from git  |\n")
+	fmt.Fprintf(&buf, "| grafana | A Grafana instance that displays data from Prometheus and Jaeger. It is shipped with customized dashboards for Sourcegraph services |\n")
+	fmt.Fprintf(&buf, "| jaeger | A Jaeger instance for end-to-end distributed tracing |\n")
+	fmt.Fprintf(&buf, "| minio | A MinIO instance that serves as a local S3-compatible object storage to hold user uploads for code-intel before they can be processed |\n")
+	fmt.Fprintf(&buf, "| pgsql | The main database. It is a PostgreSQL instance where things like repo lists, user data, site config files are stored (anything not related to code-intel and code-insights) |\n")
+	fmt.Fprintf(&buf, "| precise-code-intel | Converts LSIF upload file into Postgres data. The entire index must be read into memory to be correlated |\n")
+	fmt.Fprintf(&buf, "| prometheus | Collecting high-level, and low-cardinality, metrics across services. |\n")
+	fmt.Fprintf(&buf, "| redis-cache | A Redis instance for storing cache data. |\n")
+	fmt.Fprintf(&buf, "| redis-store  | A Redis instance for storing short-term information such as user sessions. |\n")
+	fmt.Fprintf(&buf, "| repo-updater | Repo-updater tracks the state of repos, and is responsible for automatically scheduling updates using gitserver. Other apps which desire updates or fetches should be telling repo-updater, rather than using gitserver directly, so repo-updater can take their changes into account. |\n")
+	fmt.Fprintf(&buf, "| searcher | Provides on-demand unindexed search for repositories. It fetches archives from gitserver and searches them with regexp	|\n")
+	fmt.Fprintf(&buf, "| symbols | Indexes symbols in repositories using Ctags. By default, the symbols service saves SQLite DBs as files on disk, and copies an old one to a new file when a user visits a new commit. If Rockskip is enabled, the symbols are stored in the codeintel-db instead while the cache is stored on disk |\n")
+	fmt.Fprintf(&buf, "| syntect-server | An HTTP server that exposes the Rust Syntect syntax highlighting library for use by other services |\n")
+	fmt.Fprintf(&buf, "| worker |  Runs a collection of background jobs (for both Code-Intel and Code-Insight) periodically or in response to an external event. It is currently janitorial and commit based. |\n")
+	fmt.Fprintf(&buf, "| zoekt-indexserver | Indexes all enabled repositories on Sourcegraph, as well as keeping the indexes up to date |\n")
+	fmt.Fprintf(&buf, "| zoekt-webserver | Runs searches from in-memory indexes, but persists these indexes to disk to avoid re-indexing everything on startup |\n")
+	fmt.Fprintf(&buf, "\n")
+
 	return buf.Bytes()
 }
