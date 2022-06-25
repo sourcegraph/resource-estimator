@@ -178,8 +178,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 
 	pageExplanation := `Updating the form below will recalculate an estimate for the resources you can use to configure your Sourcegraph deployment.`
 
-	useDefault := `Use the default values for services that are not listed below.`
-
 	howSourcegraphScales := `[Click here to learn more about how Sourcegraph scales.](https://docs.sourcegraph.com/admin/install/kubernetes/scale)`
 
 	explainEngagementRate := "> Engagement rate refers to the percentage of users who use Sourcegraph regularly. It is generally used for existing deployments to estimate resources."
@@ -200,7 +198,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		vecty.Markup(vecty.Class("estimator")),
 		elem.Heading1(vecty.Text("Sourcegraph Resource Estimator")),
 		&markdown{Content: []byte(pageExplanation)},
-		&markdown{Content: []byte(useDefault)},
 		&markdown{Content: []byte(howSourcegraphScales)},
 		p.inputs(),
 		&markdown{Content: estimate},
