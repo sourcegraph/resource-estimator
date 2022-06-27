@@ -440,7 +440,7 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
-	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "GB"))
+	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repos. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "GB"))
 	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repo. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GB"))
 
 	fmt.Fprintf(&buf, "\n")
