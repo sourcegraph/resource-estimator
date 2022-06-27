@@ -146,7 +146,7 @@ var References = []ServiceScale{
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []ReferencePoint{
 			{MemoryGB: Resource{16, 16}, Value: LargeMonoreposRange.Max}, // estimate
-			{MemoryGB: Resource{16, 16}, Value: 5},                       // estimate
+			{MemoryGB: Resource{16, 16}, Value: 2},                       // estimate
 			{MemoryGB: Resource{8, 8}, Value: LargeMonoreposRange.Min},   // bare minimum
 		},
 	},

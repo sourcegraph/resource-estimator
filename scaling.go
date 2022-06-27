@@ -137,7 +137,7 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.reposize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.reposize, scaling.TotalRepoSizeRange, 1),
-			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 1GB)"), func(e *vecty.Event) {
+			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 2GB)"), func(e *vecty.Event) {
 				p.largeMonorepos, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largeMonorepos, scaling.LargeMonoreposRange, 1),

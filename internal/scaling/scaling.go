@@ -103,7 +103,7 @@ var (
 	UsersRange               = Range{5, 10000}
 	RepositoriesRange        = Range{5, 50000}
 	TotalRepoSizeRange       = Range{1, 5000}
-	LargeMonoreposRange      = Range{0, 20}
+	LargeMonoreposRange      = Range{0, 10}
 	LargestRepoSizeRange     = Range{0, 5000}
 	LargestIndexSizeRange    = Range{0, 100}
 	AverageRepositoriesRange = Range{
@@ -418,7 +418,7 @@ func (e *Estimate) Result() []byte {
 		)
 	}
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "> ꜝ<small>: This is a non-default value.</small>\n")
+	fmt.Fprintf(&buf, "> ꜝ<small> This is a non-default value.</small>\n")
 	fmt.Fprintf(&buf, "\n")
 
 	// Storage Size
@@ -428,10 +428,11 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
 	fmt.Fprintf(&buf, "| codeinsights-db | 200GB | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
 	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repos indexed by Rockskip is required. |\n")
-	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GB"))
-	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
+	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
+	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
 	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "GB"))
-	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multipled by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "GB"))
+	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multiplied by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "GBꜝ"))
+	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the associated service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
 
 	fmt.Fprintf(&buf, "\n")
 
