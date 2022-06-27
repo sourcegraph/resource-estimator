@@ -448,7 +448,7 @@ func (e *Estimate) Result() []byte {
 	// Scaling overview
 	fmt.Fprintf(&buf, "## Service overview\n")
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "| Service | Sescription |\n")
+	fmt.Fprintf(&buf, "| Service | Description |\n")
 	fmt.Fprintf(&buf, "|---------|------|\n")
 	fmt.Fprintf(&buf, "| cadvisor | A cAdvisor instance that exports container monitoring metrics scraped by Prometheus and visualized in Grafana |\n")
 	fmt.Fprintf(&buf, "| codeinsights-db | A PostgreSQL instance for storing code insights data |\n")
