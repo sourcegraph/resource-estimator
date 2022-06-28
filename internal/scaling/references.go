@@ -197,34 +197,56 @@ var pods = map[string][]string{
 }
 
 var defaults = map[string]map[string]ReferencePoint{
-	"kubernetes": {
-		"frontend":           ReferencePoint{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}},
-		"gitserver":          ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}},
-		"pgsql":              ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}},
-		"precise-code-intel": ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
-		"redis-store":        ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
-		"redis-cache":        ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
-		"repo-updater":       ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{.5, 2}},
-		"searcher":           ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
-		"symbols":            ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
-		"syntect-server":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}},
-		"worker":             ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
-		"zoekt-webserver":    ReferencePoint{Replicas: 1, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}},
-		"zoekt-indexserver":  ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
+	"frontend": {
+		"kubernetes":     ReferencePoint{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 8}},
 	},
-	"docker-compose": {
-		"frontend":           ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 8}},
-		"gitserver":          ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 8}},
-		"pgsql":              ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
-		"precise-code-intel": ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 4}},
-		"redis-store":        ReferencePoint{Replicas: 1, CPU: Resource{0, 1}, MemoryGB: Resource{0, 7}},
-		"redis-cache":        ReferencePoint{Replicas: 1, CPU: Resource{0, 1}, MemoryGB: Resource{0, 7}},
-		"repo-updater":       ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
-		"searcher":           ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 2}},
-		"symbols":            ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 4}},
-		"syntect-server":     ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 6}},
-		"worker":             ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
-		"zoekt-webserver":    ReferencePoint{Replicas: 1, CPU: Resource{0, 8}, MemoryGB: Resource{0, 16}},
-		"zoekt-indexserver":  ReferencePoint{Replicas: 1, CPU: Resource{0, 8}, MemoryGB: Resource{0, 50}},
+	"gitserver": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 8}},
+	},
+	"pgsql": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
+	},
+	"precise-code-intel": {
+		"kubernetes":     ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 4}},
+	},
+	"redis-store": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 1}, MemoryGB: Resource{0, 7}},
+	},
+	"redis-cache": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 1}, MemoryGB: Resource{0, 7}},
+	},
+	"repo-updater": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{.5, 2}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
+	},
+	"searcher": {
+		"kubernetes":     ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 2}},
+	},
+	"symbols": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 4}},
+	},
+	"syntect-server": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 6}},
+	},
+	"worker": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
+	},
+	"zoekt-webserver": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 8}, MemoryGB: Resource{0, 16}},
+	},
+	"zoekt-indexserver": {
+		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
+		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 8}, MemoryGB: Resource{0, 50}},
 	},
 }

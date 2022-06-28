@@ -25,7 +25,6 @@ func TestEstimate(t *testing.T) {
 			LargestIndexSize: 1,
 			Users:            100,
 			EngagementRate:   50,
-			CodeIntel:        "Enable",
 			CodeInsight:      "Enable",
 		},
 	}, {
@@ -39,7 +38,6 @@ func TestEstimate(t *testing.T) {
 			LargestIndexSize: 1,
 			Users:            100,
 			EngagementRate:   50,
-			CodeIntel:        "Enable",
 			CodeInsight:      "Enable",
 		},
 	}}

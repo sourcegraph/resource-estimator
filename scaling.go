@@ -25,7 +25,6 @@ func main() {
 		largeMonorepos:    5,
 		largestRepoSize:   5,
 		largestIndexSize:  3,
-		codeintelEnabled:  "Enable",
 		codeinsightEabled: "Enable",
 	})
 	if err != nil {
@@ -40,7 +39,7 @@ func main() {
 type MainView struct {
 	vecty.Core
 	repositories, largeMonorepos, users, engagementRate, reposize, largestRepoSize, largestIndexSize int
-	deploymentType, codeintelEnabled, codeinsightEabled                                              string
+	deploymentType, codeinsightEabled                                                                string
 }
 
 func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
@@ -149,14 +148,14 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.codeinsightEabled = e.Value.Get("target").Get("value").String()
 				vecty.Rerender(p)
 			}),
-			p.radioInput("Precise code intelligence: ", []string{"Enable", "Disable"}, func(e *vecty.Event) {
-				p.codeintelEnabled = e.Value.Get("target").Get("value").String()
-				vecty.Rerender(p)
-			}),
 			p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
 				p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1),
+			elem.Div(
+				vecty.Markup(vecty.Style("margin-top", "5px"), vecty.Style("font-size", "small")),
+				vecty.Text("Set value to 0 if precise code intelligence is disabled"),
+			),
 		),
 	}
 }
@@ -172,7 +171,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		LargestIndexSize: p.largestIndexSize,
 		Users:            p.users,
 		EngagementRate:   p.engagementRate,
-		CodeIntel:        p.codeintelEnabled,
 		CodeInsight:      p.codeinsightEabled,
 	}).Calculate().Result()
 
@@ -186,7 +184,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 	repoPermissionsNote += ">\n"
 	repoPermissionsNote += "> We suggest setting your `authorization` `ttl` values as high as you are comfortable setting it in order to reduce the chance of this (e.g. to `72h`) [in the repository permission configuration](https://docs.sourcegraph.com/admin/repo/permissions).\n"
 
-	defaultDeployment := `> Our deployment supports instances with up to 1500 users and about 1500 repositories with one monorepo that is less than 5GB by default.`
+	defaultDeployment := `> Our default deployment should support up to ~1000 users and about 1500 repositories with one monorepo that is less than 5GB.`
 
 	howToApplyRelicasResources := "> In a docker-compose deployment, edit your `docker-compose.yml` file and set `cpus` and `mem_limit` to the limits shown above.\n"
 	howToApplyRelicasResources += ">\n"

@@ -172,23 +172,22 @@ func orOne(v float64) float64 {
 type Estimate struct {
 	// inputs
 	DeploymentType   string // calculated if set to "docker-compose"
-	CodeIntel        string
-	CodeInsight      string
-	EngagementRate   int
-	Repositories     int
-	LargeMonorepos   int
-	LargestRepoSize  int
-	LargestIndexSize int
-	TotalRepoSize    int
-	Users            int
+	CodeInsight      string // If Code Insight is enabled, add 2000 to user count
+	EngagementRate   int    // The percentage of users who use Sourcegraph regularly.
+	Repositories     int    // Number of repositories
+	LargeMonorepos   int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
+	LargestRepoSize  int    // Size of the largest repository in GB
+	LargestIndexSize int    // Size of the largest LSIF index file in GB
+	TotalRepoSize    int    // Size of all repositories
+	Users            int    // Number of users
 
 	// calculated results
-	AverageRepositories int
-	ContactSupport      bool
-	EngagedUsers        int
-	IndexServerDiskSize int
-	Services            map[string]ReferencePoint
-	UserRepoSumRatio    int
+	AverageRepositories int                       // Number of total repositories including monorepos: number repos + monorepos x 50
+	ContactSupport      bool                      // Contact support required
+	EngagedUsers        int                       // Number of users x engagement rate
+	IndexServerDiskSize int                       // Disk size of Indexserver: gitserver disk space x gitserver replicas count
+	Services            map[string]ReferencePoint // List of services output
+	UserRepoSumRatio    int                       // The ratio used to determine deployment size:  (user count + average repos count) / 1000
 
 	// These fields are the sum of the _requests_ of all services in the deployment, plus 50% of
 	// the difference in limits. The thinking is that requests are often far too low as they do not
@@ -201,8 +200,8 @@ type Estimate struct {
 
 func (e *Estimate) Calculate() *Estimate {
 	e.EngagedUsers = e.Users * e.EngagementRate / 100
-	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*50) / 1000
-	e.AverageRepositories = e.Repositories + (e.LargeMonorepos * MonorepoFactor)
+	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*MonorepoFactor) / 1000
+	e.AverageRepositories = e.Repositories + e.LargeMonorepos*MonorepoFactor
 	e.Services = make(map[string]ReferencePoint)
 	for _, ref := range References {
 		var value float64
@@ -292,8 +291,8 @@ func (e *Estimate) Calculate() *Estimate {
 	for service, ref := range e.Services {
 		countRef(service, ref)
 	}
-	for service, ref := range defaults[e.DeploymentType] {
-		countRef(service, ref)
+	for service, ref := range defaults {
+		countRef(service, ref[e.DeploymentType])
 	}
 	totalCPU := sumCPURequests + ((sumCPULimits - sumCPURequests) * 0.5)
 	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits - sumMemoryGBRequests) * 0.5)
@@ -399,11 +398,11 @@ func (e *Estimate) Result() []byte {
 			} else {
 				memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus, "ꜝ")
 			}
+		}
 
-			if e.DeploymentType == "docker-compose" {
-				cpuRequest = "-"
-				memoryGBRequest = "-"
-			}
+		if e.DeploymentType == "docker-compose" {
+			cpuRequest = "-"
+			memoryGBRequest = "-"
 		}
 
 		fmt.Fprintf(
@@ -427,8 +426,8 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
 	fmt.Fprintf(&buf, "| codeinsights-db | 200GB | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
-	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repos indexed by Rockskip is required. |\n")
-	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repoes. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
+	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repositories indexed by Rockskip is required. |\n")
+	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
 	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
 	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "GB"))
 	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multiplied by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "GBꜝ"))
@@ -441,8 +440,8 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
-	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repos. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "GB"))
-	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repo. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GB"))
+	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "GB"))
+	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GB"))
 
 	fmt.Fprintf(&buf, "\n")
 
@@ -465,7 +464,7 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "| prometheus | Collecting high-level, and low-cardinality, metrics across services. |\n")
 	fmt.Fprintf(&buf, "| redis-cache | A Redis instance for storing cache data. |\n")
 	fmt.Fprintf(&buf, "| redis-store  | A Redis instance for storing short-term information such as user sessions. |\n")
-	fmt.Fprintf(&buf, "| repo-updater | Repo-updater tracks the state of repos, and is responsible for automatically scheduling updates using gitserver. Other apps which desire updates or fetches should be telling repo-updater, rather than using gitserver directly, so repo-updater can take their changes into account. |\n")
+	fmt.Fprintf(&buf, "| repo-updater | Repo-updater tracks the state of repositories, and is responsible for automatically scheduling updates using gitserver. Other apps which desire updates or fetches should be telling repo-updater, rather than using gitserver directly, so repo-updater can take their changes into account. |\n")
 	fmt.Fprintf(&buf, "| searcher | Provides on-demand unindexed search for repositories. It fetches archives from gitserver and searches them with regexp	|\n")
 	fmt.Fprintf(&buf, "| symbols | Indexes symbols in repositories using Ctags. By default, the symbols service saves SQLite DBs as files on disk, and copies an old one to a new file when a user visits a new commit. If Rockskip is enabled, the symbols are stored in the codeintel-db instead while the cache is stored on disk |\n")
 	fmt.Fprintf(&buf, "| syntect-server | An HTTP server that exposes the Rust Syntect syntax highlighting library for use by other services |\n")
