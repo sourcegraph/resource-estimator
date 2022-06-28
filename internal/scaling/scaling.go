@@ -445,33 +445,5 @@ func (e *Estimate) Result() []byte {
 
 	fmt.Fprintf(&buf, "\n")
 
-	// Scaling overview
-	fmt.Fprintf(&buf, "## Service overview\n")
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "| Service | Description |\n")
-	fmt.Fprintf(&buf, "|---------|------|\n")
-	fmt.Fprintf(&buf, "| cadvisor | A cAdvisor instance that exports container monitoring metrics scraped by Prometheus and visualized in Grafana |\n")
-	fmt.Fprintf(&buf, "| codeinsights-db | A PostgreSQL instance for storing code insights data |\n")
-	fmt.Fprintf(&buf, "| codeintel-db | A PostgreSQL instance for storing large-volume precise code intelligence data |\n")
-	fmt.Fprintf(&buf, "| frontend | Serves the web application, extensions, and graphQL services. Almost every service has a link back to the frontend, from which it gathers configuration updates. |\n")
-	fmt.Fprintf(&buf, "| github-proxy | Proxies all requests to github.com to keep track of rate limits and prevent triggering abuse mechanisms	|\n")
-	fmt.Fprintf(&buf, "| gitserver | Mirrors repositories from their code host. All other Sourcegraph services talk to gitserver when they need data from git  |\n")
-	fmt.Fprintf(&buf, "| grafana | A Grafana instance that displays data from Prometheus and Jaeger. It is shipped with customized dashboards for Sourcegraph services |\n")
-	fmt.Fprintf(&buf, "| jaeger | A Jaeger instance for end-to-end distributed tracing |\n")
-	fmt.Fprintf(&buf, "| minio | A MinIO instance that serves as a local S3-compatible object storage to hold user uploads for code-intel before they can be processed |\n")
-	fmt.Fprintf(&buf, "| pgsql | The main database. It is a PostgreSQL instance where things like repo lists, user data, site config files are stored (anything not related to code-intel and code-insights) |\n")
-	fmt.Fprintf(&buf, "| precise-code-intel | Converts LSIF upload file into Postgres data. The entire index must be read into memory to be correlated |\n")
-	fmt.Fprintf(&buf, "| prometheus | Collecting high-level, and low-cardinality, metrics across services. |\n")
-	fmt.Fprintf(&buf, "| redis-cache | A Redis instance for storing cache data. |\n")
-	fmt.Fprintf(&buf, "| redis-store  | A Redis instance for storing short-term information such as user sessions. |\n")
-	fmt.Fprintf(&buf, "| repo-updater | Repo-updater tracks the state of repositories, and is responsible for automatically scheduling updates using gitserver. Other apps which desire updates or fetches should be telling repo-updater, rather than using gitserver directly, so repo-updater can take their changes into account. |\n")
-	fmt.Fprintf(&buf, "| searcher | Provides on-demand unindexed search for repositories. It fetches archives from gitserver and searches them with regexp	|\n")
-	fmt.Fprintf(&buf, "| symbols | Indexes symbols in repositories using Ctags. By default, the symbols service saves SQLite DBs as files on disk, and copies an old one to a new file when a user visits a new commit. If Rockskip is enabled, the symbols are stored in the codeintel-db instead while the cache is stored on disk |\n")
-	fmt.Fprintf(&buf, "| syntect-server | An HTTP server that exposes the Rust Syntect syntax highlighting library for use by other services |\n")
-	fmt.Fprintf(&buf, "| worker |  Runs a collection of background jobs (for both Code-Intel and Code-Insight) periodically or in response to an external event. It is currently janitorial and commit based. |\n")
-	fmt.Fprintf(&buf, "| zoekt-indexserver | Indexes all enabled repositories on Sourcegraph, as well as keeping the indexes up to date |\n")
-	fmt.Fprintf(&buf, "| zoekt-webserver | Runs searches from in-memory indexes, but persists these indexes to disk to avoid re-indexing everything on startup |\n")
-	fmt.Fprintf(&buf, "\n")
-
 	return buf.Bytes()
 }

@@ -178,55 +178,23 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 
 	howSourcegraphScales := `[Click here to learn more about how Sourcegraph scales.](https://docs.sourcegraph.com/admin/install/kubernetes/scale)`
 
-	explainEngagementRate := "> Engagement rate refers to the percentage of users who use Sourcegraph regularly. It is generally used for existing deployments to estimate resources."
-
 	repoPermissionsNote := "> Repository permissions on Sourcegraph can have a noticeable impact on search performance if you have a large number of users and/or repositories on your code host.\n"
 	repoPermissionsNote += ">\n"
 	repoPermissionsNote += "> We suggest setting your `authorization` `ttl` values as high as you are comfortable setting it in order to reduce the chance of this (e.g. to `72h`) [in the repository permission configuration](https://docs.sourcegraph.com/admin/repo/permissions).\n"
-
-	defaultDeployment := `> Our default deployment should support up to ~1000 users and about 1500 repositories with one monorepo that is less than 5GB.`
 
 	howToApplyRelicasResources := "> In a docker-compose deployment, edit your `docker-compose.yml` file and set `cpus` and `mem_limit` to the limits shown above.\n"
 	howToApplyRelicasResources += ">\n"
 	howToApplyRelicasResources += "> In Kubernetes deployments, edit the respective yaml file and update, `limits`, `requests`, and `replicas` according to the above.\n"
 
-	dockerComposeOrK8s := "> We recommend Kubernetes for any deployments requiring > 1 service replica, but docker-compose does support service replicas and can scale up with multiple replicas as long as you can provision a sufficiently large single machine."
-
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
-		elem.Heading1(vecty.Text("Sourcegraph Resource Estimator")),
 		&markdown{Content: []byte(pageExplanation)},
 		&markdown{Content: []byte(howSourcegraphScales)},
 		p.inputs(),
 		&markdown{Content: estimate},
-		elem.Heading3(vecty.Text("Additional information")),
+		elem.Heading3(vecty.Text("Export result")),
 		elem.Details(
-			elem.Summary(vecty.Text("Default deployment size")),
-			elem.Break(),
-			&markdown{Content: []byte(defaultDeployment)},
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("What is engagement rate")),
-			elem.Break(),
-			&markdown{Content: []byte(explainEngagementRate)},
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("The recommended deployment type")),
-			elem.Break(),
-			&markdown{Content: []byte(dockerComposeOrK8s)},
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("How to apply these changes to your deployment")),
-			elem.Break(),
-			&markdown{Content: []byte(howToApplyRelicasResources)},
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("If you plan to enforce repository permissions on Sourcegraph")),
-			elem.Break(),
-			&markdown{Content: []byte(repoPermissionsNote)},
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("Export result as as Markdown")),
+			elem.Summary(vecty.Text("Export as Markdown")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),
