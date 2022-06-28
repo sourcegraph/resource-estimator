@@ -358,7 +358,7 @@ func (e *Estimate) Result() []byte {
 
 	for _, service := range names {
 		ref := e.Services[service]
-		def := defaults[e.DeploymentType][service]
+		def := defaults[service][e.DeploymentType]
 		ref = ref.round()
 		plus := ""
 
