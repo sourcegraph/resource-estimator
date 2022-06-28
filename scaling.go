@@ -174,22 +174,8 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		CodeInsight:      p.codeinsightEabled,
 	}).Calculate().Result()
 
-	pageExplanation := `Updating the form below will recalculate an estimate for the resources you can use to configure your Sourcegraph deployment.`
-
-	howSourcegraphScales := `[Click here to learn more about how Sourcegraph scales.](https://docs.sourcegraph.com/admin/install/kubernetes/scale)`
-
-	repoPermissionsNote := "> Repository permissions on Sourcegraph can have a noticeable impact on search performance if you have a large number of users and/or repositories on your code host.\n"
-	repoPermissionsNote += ">\n"
-	repoPermissionsNote += "> We suggest setting your `authorization` `ttl` values as high as you are comfortable setting it in order to reduce the chance of this (e.g. to `72h`) [in the repository permission configuration](https://docs.sourcegraph.com/admin/repo/permissions).\n"
-
-	howToApplyRelicasResources := "> In a docker-compose deployment, edit your `docker-compose.yml` file and set `cpus` and `mem_limit` to the limits shown above.\n"
-	howToApplyRelicasResources += ">\n"
-	howToApplyRelicasResources += "> In Kubernetes deployments, edit the respective yaml file and update, `limits`, `requests`, and `replicas` according to the above.\n"
-
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
-		&markdown{Content: []byte(pageExplanation)},
-		&markdown{Content: []byte(howSourcegraphScales)},
 		p.inputs(),
 		&markdown{Content: estimate},
 		elem.Heading3(vecty.Text("Export result")),
