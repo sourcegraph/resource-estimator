@@ -1,6 +1,6 @@
-let GitHubActions = (../imports.dhall).GitHubActions
-
 let Setup = ../setup.dhall
+
+let GitHubActions = (../imports.dhall).GitHubActions
 
 in  Setup.MakeJob
       Setup.JobArgs::{

@@ -17,11 +17,15 @@ import (
 func main() {
 	vecty.SetTitle("Resource estimator - Sourcegraph")
 	err := vecty.RenderInto("#root", &MainView{
-		deploymentType: "estimated",
-		repositories:   300,
-		largeMonorepos: 0,
-		users:          100,
-		engagementRate: 50,
+		deploymentType:    "type",
+		users:             300,
+		engagementRate:    100,
+		repositories:      5000,
+		reposize:          500,
+		largeMonorepos:    5,
+		largestRepoSize:   5,
+		largestIndexSize:  3,
+		codeinsightEabled: "Enable",
 	})
 	if err != nil {
 		panic(err)
@@ -34,14 +38,16 @@ func main() {
 // revive:disable-next-line:exported
 type MainView struct {
 	vecty.Core
-	repositories, largeMonorepos, users, engagementRate int
-	deploymentType                                      string
+	repositories, largeMonorepos, users, engagementRate, reposize, largestRepoSize, largestIndexSize int
+	deploymentType, codeinsightEabled                                                                string
 }
 
 func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
 	return elem.Label(
+		vecty.Markup(vecty.Style("margin-top", "10px")),
 		elem.Input(
 			vecty.Markup(
+				vecty.Style("width", "30%"),
 				event.Input(handler),
 				vecty.Property("type", "number"),
 				vecty.Property("value", value),
@@ -50,7 +56,7 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 				vecty.Property("max", rnge.Max),
 			),
 		),
-		elem.Span(
+		elem.Div(
 			vecty.Markup(vecty.Class("post-label")),
 			vecty.Text(postLabel),
 		),
@@ -59,8 +65,10 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 
 func (p *MainView) rangeInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
 	return elem.Label(
+		vecty.Markup(vecty.Style("margin-top", "10px")),
 		elem.Input(
 			vecty.Markup(
+				vecty.Style("width", "30%"),
 				event.Input(handler),
 				vecty.Property("type", "range"),
 				vecty.Property("value", value),
@@ -69,7 +77,7 @@ func (p *MainView) rangeInput(postLabel string, handler func(e *vecty.Event), va
 				vecty.Property("max", rnge.Max),
 			),
 		),
-		elem.Span(
+		elem.Div(
 			vecty.Markup(vecty.Class("post-label")),
 			vecty.Text(postLabel),
 		),
@@ -86,84 +94,93 @@ func (p *MainView) radioInput(groupName string, options []string, handler func(e
 					vecty.Property("type", "radio"),
 					vecty.Property("value", option),
 					vecty.Property("name", groupName),
-					vecty.MarkupIf(i == 0, vecty.Property("defaultChecked", "yes")),
+					vecty.MarkupIf(i == 0, vecty.Property("defaultChecked", "yes")),                 // pre-check the first option on every radio input
+					vecty.MarkupIf(option == "kubernetes", vecty.Property("defaultChecked", "yes")), // start the estimator with kubernetes
 				),
 			),
 			elem.Span(vecty.Text(option)),
 		))
 	}
 	return elem.Div(
-		vecty.Markup(vecty.Class("radioInput")),
-		elem.Strong(vecty.Text(groupName)),
-		list,
+		vecty.Markup(vecty.Style("margin-top", "10px")),
+		elem.Div(
+			vecty.Markup(vecty.Class("radioInput"), vecty.Style("display", "inline-flex"), vecty.Style("align-items", "center")),
+			elem.Strong(vecty.Markup(vecty.Style("display", "inline-flex"), vecty.Style("align-items", "center")), vecty.Text(groupName)),
+			list,
+		),
 	)
 }
 
 func (p *MainView) inputs() vecty.ComponentOrHTML {
 	return vecty.List{
-		elem.Heading3(vecty.Text("Inputs")),
-		p.numberInput("repositories", func(e *vecty.Event) {
-			p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
-			vecty.Rerender(p)
-		}, p.repositories, scaling.RepositoriesRange, 5),
-		p.numberInput("users", func(e *vecty.Event) {
-			p.users, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
-			vecty.Rerender(p)
-		}, p.users, scaling.UsersRange, 1),
-		p.rangeInput(fmt.Sprint(p.largeMonorepos, " large monorepos"), func(e *vecty.Event) {
-			p.largeMonorepos, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
-			vecty.Rerender(p)
-		}, p.largeMonorepos, scaling.LargeMonoreposRange, 1),
-		p.rangeInput(fmt.Sprint(p.engagementRate, "% engagement rate"), func(e *vecty.Event) {
-			p.engagementRate, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
-			vecty.Rerender(p)
-		}, p.engagementRate, scaling.EngagementRateRange, 5),
-		p.radioInput("Deployment Type: ", []string{"estimated", "docker-compose", "kubernetes"}, func(e *vecty.Event) {
-			p.deploymentType = e.Value.Get("target").Get("value").String()
-			vecty.Rerender(p)
-		}),
+		elem.Div(
+			vecty.Markup(vecty.Style("padding", "20px"),
+				vecty.Style("border", "1px solid")),
+			p.radioInput("Deployment Type: ", []string{"docker-compose", "kubernetes"}, func(e *vecty.Event) {
+				p.deploymentType = e.Value.Get("target").Get("value").String()
+				vecty.Rerender(p)
+			}),
+			p.numberInput("users", func(e *vecty.Event) {
+				p.users, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				vecty.Rerender(p)
+			}, p.users, scaling.UsersRange, 1),
+			p.rangeInput(fmt.Sprint(p.engagementRate, "% engagement rate"), func(e *vecty.Event) {
+				p.engagementRate, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				vecty.Rerender(p)
+			}, p.engagementRate, scaling.EngagementRateRange, 5),
+			p.numberInput("repositories", func(e *vecty.Event) {
+				p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				vecty.Rerender(p)
+			}, p.repositories, scaling.RepositoriesRange, 5),
+			p.numberInput("GB - the size of all repositories", func(e *vecty.Event) {
+				p.reposize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				vecty.Rerender(p)
+			}, p.reposize, scaling.TotalRepoSizeRange, 1),
+			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 2GB)"), func(e *vecty.Event) {
+				p.largeMonorepos, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				vecty.Rerender(p)
+			}, p.largeMonorepos, scaling.LargeMonoreposRange, 1),
+			p.numberInput("GB - the size of the largest repository", func(e *vecty.Event) {
+				p.largestRepoSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				vecty.Rerender(p)
+			}, p.largestRepoSize, scaling.LargestRepoSizeRange, 1),
+			p.radioInput("Code Insights: ", []string{"Enable", "Disable"}, func(e *vecty.Event) {
+				p.codeinsightEabled = e.Value.Get("target").Get("value").String()
+				vecty.Rerender(p)
+			}),
+			p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
+				p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				vecty.Rerender(p)
+			}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1),
+			elem.Div(
+				vecty.Markup(vecty.Style("margin-top", "5px"), vecty.Style("font-size", "small")),
+				vecty.Text("Set value to 0 if precise code intelligence is disabled"),
+			),
+		),
 	}
 }
 
 // Render implements the vecty.Component interface.
 func (p *MainView) Render() vecty.ComponentOrHTML {
 	estimate := (&scaling.Estimate{
-		DeploymentType: p.deploymentType,
-		Repositories:   p.repositories,
-		LargeMonorepos: p.largeMonorepos,
-		Users:          p.users,
-		EngagementRate: p.engagementRate,
-	}).Calculate().Markdown()
-
-	repoPermissionsNote := "> Repository permissions on Sourcegraph can have a noticeable impact on search performance if you have a large number of users and/or repositories on your code host.\n"
-	repoPermissionsNote += ">\n"
-	repoPermissionsNote += "> We suggest setting your `authorization` `ttl` values as high as you are comfortable setting it in order to reduce the chance of this (e.g. to `72h`) [in the repository permission configuration](https://docs.sourcegraph.com/admin/repo/permissions).\n"
-
-	pageExplanation := `Enter your inputs below and the page will calculate an estimate for what deployment you should start out with, then later [learn more about how Sourcegraph scales](https://docs.sourcegraph.com/admin/install/kubernetes/scale).`
-
-	howToApplyRelicasResources := "> In a docker-compose deployment, edit your `docker-compose.yml` file and set `cpus` and `mem_limit` to the limits shown above.\n"
-	howToApplyRelicasResources += ">\n"
-	howToApplyRelicasResources += "> In Kubernetes deployments, edit the respective yaml file and update, `limits`, `requests`, and `replicas` according to the above.\n"
+		DeploymentType:   p.deploymentType,
+		Repositories:     p.repositories,
+		TotalRepoSize:    p.reposize,
+		LargeMonorepos:   p.largeMonorepos,
+		LargestRepoSize:  p.largestRepoSize,
+		LargestIndexSize: p.largestIndexSize,
+		Users:            p.users,
+		EngagementRate:   p.engagementRate,
+		CodeInsight:      p.codeinsightEabled,
+	}).Calculate().Result()
 
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
-		elem.Heading1(vecty.Text("Sourcegraph resource estimator")),
-		&markdown{Content: []byte(pageExplanation)},
 		p.inputs(),
 		&markdown{Content: estimate},
-		elem.Heading3(vecty.Text("Additional information")),
+		elem.Heading3(vecty.Text("Export result")),
 		elem.Details(
-			elem.Summary(vecty.Text("How to apply these changes to your deployment")),
-			elem.Break(),
-			&markdown{Content: []byte(howToApplyRelicasResources)},
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("If you plan to enforce repository permissions on Sourcegraph")),
-			elem.Break(),
-			&markdown{Content: []byte(repoPermissionsNote)},
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("Copy this estimate as Markdown")),
+			elem.Summary(vecty.Text("Export as Markdown")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),

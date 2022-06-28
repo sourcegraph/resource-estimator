@@ -12,7 +12,11 @@ type Factor int
 const (
 	ByEngagedUsers        Factor = iota
 	ByAverageRepositories Factor = iota
+	ByTotalRepoSize       Factor = iota
 	ByLargeMonorepos      Factor = iota
+	ByLargestRepoSize     Factor = iota
+	ByLargestIndexSize    Factor = iota
+	ByUserRepoSumRatio    Factor = iota
 )
 
 type Resource struct {
@@ -97,13 +101,17 @@ const (
 
 var (
 	UsersRange               = Range{5, 10000}
-	RepositoriesRange        = Range{5, 40000}
+	RepositoriesRange        = Range{5, 50000}
+	TotalRepoSizeRange       = Range{1, 5000}
 	LargeMonoreposRange      = Range{0, 10}
+	LargestRepoSizeRange     = Range{0, 5000}
+	LargestIndexSizeRange    = Range{0, 100}
 	AverageRepositoriesRange = Range{
 		RepositoriesRange.Min + (LargeMonoreposRange.Min * MonorepoFactor),
 		RepositoriesRange.Max + (LargeMonoreposRange.Max * MonorepoFactor),
 	}
-	EngagementRateRange = Range{0, 100}
+	UserRepoSumRatioRange = Range{1, 200}
+	EngagementRateRange   = Range{5, 100}
 )
 
 func init() {
@@ -163,17 +171,23 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	Repositories   int
-	LargeMonorepos int
-	Users          int
-	EngagementRate int
-	DeploymentType string // calculated if set to "estimated"
+	DeploymentType   string // calculated if set to "docker-compose"
+	CodeInsight      string // If Code Insight is enabled, add 2000 to user count
+	EngagementRate   int    // The percentage of users who use Sourcegraph regularly.
+	Repositories     int    // Number of repositories
+	LargeMonorepos   int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
+	LargestRepoSize  int    // Size of the largest repository in GB
+	LargestIndexSize int    // Size of the largest LSIF index file in GB
+	TotalRepoSize    int    // Size of all repositories
+	Users            int    // Number of users
 
 	// calculated results
-	EngagedUsers        int
-	AverageRepositories int
-	Services            map[string]ReferencePoint
-	ContactSupport      bool
+	AverageRepositories int                       // Number of total repositories including monorepos: number repos + monorepos x 50
+	ContactSupport      bool                      // Contact support required
+	EngagedUsers        int                       // Number of users x engagement rate
+	IndexServerDiskSize int                       // Disk size of Indexserver: gitserver disk space x gitserver replicas count
+	Services            map[string]ReferencePoint // List of services output
+	UserRepoSumRatio    int                       // The ratio used to determine deployment size:  (user count + average repos count) / 1000
 
 	// These fields are the sum of the _requests_ of all services in the deployment, plus 50% of
 	// the difference in limits. The thinking is that requests are often far too low as they do not
@@ -186,34 +200,57 @@ type Estimate struct {
 
 func (e *Estimate) Calculate() *Estimate {
 	e.EngagedUsers = e.Users * e.EngagementRate / 100
-	e.AverageRepositories = e.Repositories + (e.LargeMonorepos * MonorepoFactor)
-
+	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*MonorepoFactor) / 1000
+	e.AverageRepositories = e.Repositories + e.LargeMonorepos*MonorepoFactor
 	e.Services = make(map[string]ReferencePoint)
 	for _, ref := range References {
 		var value float64
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
 			value = float64(e.EngagedUsers)
+			if e.CodeInsight == "Enable" {
+				value = float64(e.EngagedUsers + 2000)
+			}
 		case ByAverageRepositories:
 			value = float64(e.AverageRepositories)
 		case ByLargeMonorepos:
 			value = float64(e.LargeMonorepos)
+		case ByLargestRepoSize:
+			value = float64(e.LargestRepoSize)
+		case ByLargestIndexSize:
+			value = float64(e.LargestIndexSize)
+		case ByUserRepoSumRatio:
+			value = float64(e.UserRepoSumRatio)
+		case ByTotalRepoSize:
+			value = float64(e.TotalRepoSize)
 		default:
 			panic("never here")
 		}
 		v := interpolateReferencePoints(ref.ReferencePoints, value)
-		if e.DeploymentType == "estimated" && v.Replicas > 1 {
-			e.DeploymentType = "kubernetes"
-		}
 		if v.ContactSupport {
 			e.ContactSupport = true
 		}
 		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
 	}
-	if e.DeploymentType == "estimated" {
-		e.DeploymentType = "docker-compose"
+	if e.DeploymentType == "type" {
+		e.DeploymentType = "kubernetes"
 	}
-
+	// Get index server disk size
+	// Typically the gitserver disk size multipled by the number of gitserver shards
+	// formula: size of gitserver (size of all repos x 120%) x gitserver replicas
+	// ref: https://github.com/sourcegraph/deploy-sourcegraph/blob/v3.41.0/base/indexed-search/indexed-search.StatefulSet.yaml#L84
+	switch {
+	case e.UserRepoSumRatio < 5:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100
+	case e.UserRepoSumRatio < 20:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 2
+	case e.UserRepoSumRatio < 30:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 3
+	case e.UserRepoSumRatio < int(UserRepoSumRatioRange.Max):
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 4
+	default:
+		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 5
+	}
 	// Ensure we have the same replica counts for services that live in the
 	// same pod.
 	for _, pod := range pods {
@@ -254,8 +291,8 @@ func (e *Estimate) Calculate() *Estimate {
 	for service, ref := range e.Services {
 		countRef(service, ref)
 	}
-	for service, ref := range defaults[e.DeploymentType] {
-		countRef(service, ref)
+	for service, ref := range defaults {
+		countRef(service, ref[e.DeploymentType])
 	}
 	totalCPU := sumCPURequests + ((sumCPULimits - sumCPURequests) * 0.5)
 	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits - sumMemoryGBRequests) * 0.5)
@@ -266,37 +303,19 @@ func (e *Estimate) Calculate() *Estimate {
 	return e
 }
 
-func (e *Estimate) Markdown() []byte {
+func (e *Estimate) Result() []byte {
 	var buf bytes.Buffer
-
-	// Overview
-	fmt.Fprintf(&buf, "### Estimate overview\n")
+	// Summary of the output
+	fmt.Fprintf(&buf, "### Estimate summary\n")
 	fmt.Fprintf(&buf, "\n")
-	var engagedUsers string
-	if e.EngagedUsers > int(UsersRange.Max) {
-		engagedUsers = fmt.Sprint(UsersRange.Max, "+")
+	if !e.ContactSupport {
+		fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
+		fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
 	} else {
-		engagedUsers = fmt.Sprint(e.EngagedUsers)
+		fmt.Fprintf(&buf, "* **Estimated total CPUs:** not available\n")
+		fmt.Fprintf(&buf, "* **Estimated total memory:** not available\n")
 	}
-	var averageRepositories string
-	if e.AverageRepositories > int(AverageRepositoriesRange.Max) {
-		averageRepositories = fmt.Sprint(AverageRepositoriesRange.Max, "+")
-	} else {
-		averageRepositories = fmt.Sprint(e.AverageRepositories)
-	}
-	fmt.Fprintf(&buf, "* Estimated resources for %v engaged users and %v average-size repositories.\n", engagedUsers, averageRepositories)
-	if e.LargeMonorepos != 0 {
-		fmt.Fprintf(&buf, "* Assuming 1 large monorepo is roughly equal to %v average-size repositories.\n", MonorepoFactor)
-	}
-	if e.DeploymentType == "docker-compose" {
-		fmt.Fprintf(&buf, "* **Deployment type:** %v\n", e.DeploymentType)
-	} else {
-		fmt.Fprintf(&buf, "* <details><summary>**Deployment type:** %v</summary><br><blockquote>\n", e.DeploymentType)
-		fmt.Fprintf(&buf, "  <p>We recommend Kubernetes for any deployments requiring > 1 service replica, but docker-compose does support service replicas and can scale up with multiple replicas as long as you can provision a suffiently large single machine.</p>\n")
-		fmt.Fprintf(&buf, "  </blockquote></details>\n")
-	}
-	fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
-	fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
+	fmt.Fprintf(&buf, "* **Note:** Use the default values for services not listed below .\n")
 	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
 		if e.DeploymentType == "docker-compose" {
 			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
@@ -323,62 +342,62 @@ func (e *Estimate) Markdown() []byte {
 		}
 	}
 	fmt.Fprintf(&buf, "\n")
-
-	// Service replicas & resources
-	fmt.Fprintf(&buf, "### Service replicas & resources\n")
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "| Service | Replicas | CPU requests | CPU limits | Memory requests | Memory limits | Note |\n")
-	fmt.Fprintf(&buf, "|---------|----------|--------------|------------|-----------------|---------------|------|\n")
+	if e.ContactSupport {
+		fmt.Fprintf(&buf, "> **IMPORTANT:** Please [contact support](mailto:support@sourcegraph.com) for the service(s) that marked as not available.\n")
+		fmt.Fprintf(&buf, "\n")
+	}
+	fmt.Fprintf(&buf, "| Service | Replicas | CPU requests | CPU limits | Memory requests | Memory limits |\n")
+	fmt.Fprintf(&buf, "|---------|:----------:|:--------------:|:------------:|:-----------------:|:---------------:|\n")
 
 	var names []string
 	for service := range e.Services {
 		names = append(names, service)
 	}
 	sort.Strings(names)
+
 	for _, service := range names {
 		ref := e.Services[service]
 		def := defaults[e.DeploymentType][service]
 		ref = ref.round()
 		plus := ""
-		note := "-"
-		if ref.ContactSupport {
-			plus = "+"
-			note = "[contact support](mailto:support@sourcegraph.com)"
-		}
 
-		var replicas string
-		if ref.Replicas == def.Replicas {
-			replicas = fmt.Sprint(ref.Replicas, plus)
-		} else {
-			replicas = fmt.Sprint("**_", ref.Replicas, plus, "ꜝ_**")
-		}
+		var replicas = "n/a"
+		var cpuRequest = "n/a"
+		var cpuLimit = "n/a"
+		var memoryGBRequest = "n/a"
+		var memoryGBLimit = "n/a"
 
-		var cpuRequest string
-		if ref.CPU.Request == def.CPU.Request {
-			cpuRequest = fmt.Sprint(ref.CPU.Request, plus)
-		} else {
-			cpuRequest = fmt.Sprint("**_", ref.CPU.Request, plus, "ꜝ_**")
-		}
+		if !ref.ContactSupport {
+			if ref.Replicas == def.Replicas {
+				replicas = fmt.Sprint(ref.Replicas, plus)
+			} else {
+				replicas = fmt.Sprint(ref.Replicas, plus, "ꜝ")
+			}
 
-		var cpuLimit string
-		if ref.CPU.Limit == def.CPU.Limit {
-			cpuLimit = fmt.Sprint(ref.CPU.Limit, plus)
-		} else {
-			cpuLimit = fmt.Sprint("**_", ref.CPU.Limit, plus, "ꜝ_**")
-		}
+			if ref.CPU.Request == def.CPU.Request {
+				cpuRequest = fmt.Sprint(ref.CPU.Request, plus)
+			} else {
+				cpuRequest = fmt.Sprint(ref.CPU.Request, "ꜝ")
+			}
 
-		var memoryGBRequest string
-		if ref.MemoryGB.Request == def.MemoryGB.Request {
-			memoryGBRequest = fmt.Sprint(ref.MemoryGB.Request, "g", plus)
-		} else {
-			memoryGBRequest = fmt.Sprint("**_", ref.MemoryGB.Request, "g", plus, "ꜝ_**")
-		}
+			if ref.CPU.Limit == def.CPU.Limit {
+				cpuLimit = fmt.Sprint(ref.CPU.Limit, plus)
+			} else {
+				cpuLimit = fmt.Sprint(ref.CPU.Limit, plus, "ꜝ")
+			}
 
-		var memoryGBLimit string
-		if ref.MemoryGB.Limit == def.MemoryGB.Limit {
-			memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus)
-		} else {
-			memoryGBLimit = fmt.Sprint("**_", ref.MemoryGB.Limit, "g", plus, "ꜝ_**")
+			if ref.MemoryGB.Request == def.MemoryGB.Request {
+				memoryGBRequest = fmt.Sprint(ref.MemoryGB.Request, "g", plus)
+			} else {
+				memoryGBRequest = fmt.Sprint("", ref.MemoryGB.Request, "g", plus, "ꜝ")
+			}
+
+			if ref.MemoryGB.Limit == def.MemoryGB.Limit {
+				memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus)
+			} else {
+				memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus, "ꜝ")
+			}
 		}
 
 		if e.DeploymentType == "docker-compose" {
@@ -388,17 +407,43 @@ func (e *Estimate) Markdown() []byte {
 
 		fmt.Fprintf(
 			&buf,
-			"| %v | %v | %v | %v | %v | %v | %v |\n",
+			"| %v | %v | %v | %v | %v | %v |\n",
 			service,
 			replicas,
 			cpuRequest,
 			cpuLimit,
 			memoryGBRequest,
 			memoryGBLimit,
-			note,
 		)
 	}
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "_Bold/italic and ꜝ indicate the value is modified from the default. Services not listed here use the default values._")
+	fmt.Fprintf(&buf, "> ꜝ<small> This is a non-default value.</small>\n")
+	fmt.Fprintf(&buf, "\n")
+
+	// Storage Size
+	fmt.Fprintf(&buf, "### Storage\n")
+	fmt.Fprintf(&buf, "\n")
+	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
+	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
+	fmt.Fprintf(&buf, "| codeinsights-db | 200GB | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
+	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repositories indexed by Rockskip is required. |\n")
+	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
+	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
+	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "GB"))
+	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multiplied by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "GBꜝ"))
+	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the associated service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
+
+	fmt.Fprintf(&buf, "\n")
+
+	// Ephemeral Storage
+	fmt.Fprintf(&buf, "### Ephemeral storage\n")
+	fmt.Fprintf(&buf, "\n")
+	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
+	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
+	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "GB"))
+	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GB"))
+
+	fmt.Fprintf(&buf, "\n")
+
 	return buf.Bytes()
 }
