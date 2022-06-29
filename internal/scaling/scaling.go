@@ -408,13 +408,13 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
-	fmt.Fprintf(&buf, "| codeinsights-db | 200GB | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
-	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repositories indexed by Rockskip is required. |\n")
-	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
-	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
-	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "GB"))
+	fmt.Fprintf(&buf, "| codeinsights-db | 200GB | Starts at default as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
+	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repositories indexed by Rockskip is required. |\n")
+	fmt.Fprintf(&buf, "| gitserver | %v | ~ 20 percent more than the total size of all repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
+	fmt.Fprintf(&buf, "| minio | %v | ~ The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
+	fmt.Fprintf(&buf, "| pgsql | 200GB | Starts at default as the value grows depending on the number of active users and activity. |\n")
 	// indexed-search disk size = gitserver*2/3 ref: PR#17
-	fmt.Fprintf(&buf, "| indexed-search | %v | Approximately 3/4 of the total gitserver disk size. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100*3/4), "GBꜝ"))
+	fmt.Fprintf(&buf, "| indexed-search | %v | Approximately half of the total gitserver disk size. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100/2), "GBꜝ"))
 	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
 
 	fmt.Fprintf(&buf, "\n")
@@ -422,10 +422,11 @@ func (e *Estimate) Result() []byte {
 	// Ephemeral Storage
 	fmt.Fprintf(&buf, "### Ephemeral storage\n")
 	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
+	fmt.Fprintf(&buf, "| Service | Limits | Note |\n")
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
-	fmt.Fprintf(&buf, "| searcher| %v | The size of all indexed repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*30/100), "GB"))
-	fmt.Fprintf(&buf, "| symbols | %v | At least 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GB"))
+	fmt.Fprintf(&buf, "| searcher| %v | ~ Total number of average repositories divided by 100. |\n", fmt.Sprint(float64(e.AverageRepositories/100), "GBꜝ"))
+	fmt.Fprintf(&buf, "| symbols | %v | ~ 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GBꜝ"))
+	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
 
 	fmt.Fprintf(&buf, "\n")
 
