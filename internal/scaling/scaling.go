@@ -413,8 +413,8 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
 	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
 	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "GB"))
-	// indexed-search disk size = gitserver/2 ref: https://sourcegraph.slack.com/archives/C07KZF47K/p1656516881102679?thread_ts=1656436334.261969&cid=C07KZF47K
-	fmt.Fprintf(&buf, "| indexed-search | %v | Approximately the total disk size for gitserver divided by 2. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100/2), "GBꜝ"))
+	// indexed-search disk size = gitserver*2/3 ref: PR#17
+	fmt.Fprintf(&buf, "| indexed-search | %v | Approximately 3/4 of the total gitserver disk size. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100*3/4), "GBꜝ"))
 	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
 
 	fmt.Fprintf(&buf, "\n")
