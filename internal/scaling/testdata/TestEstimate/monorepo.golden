@@ -39,8 +39,8 @@
 | gitserver | 36GBꜝ | At least 20 percent more than the total size of all repositories. |
 | minio | 1GB | The size of the largest LSIF index file. |
 | pgsql | 60GB | Two times the size of your current database is required for migration. |
-| indexed-search | 36GBꜝ | The disk size for gitserver multiplied by the number of gitserver replicas. |
-> ꜝ<small> This value represents the total disk space required for the associated service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
+| indexed-search | 18GBꜝ | Approximately the total disk size for gitserver divided by 2. |
+> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
 
 ### Ephemeral storage
 
