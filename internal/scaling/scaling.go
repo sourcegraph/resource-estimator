@@ -424,8 +424,8 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "| Service | Limits | Note |\n")
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
-	fmt.Fprintf(&buf, "| searcher| %v | ~ Total number of average repositories divided by 100. |\n", fmt.Sprint(float64(e.AverageRepositories/100), "GBꜝ"))
-	fmt.Fprintf(&buf, "| symbols | %v | ~ 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100), "GBꜝ"))
+	fmt.Fprintf(&buf, "| searcher| %vGBꜝ | ~ Total number of average repositories divided by 100. |\n", fmt.Sprintf("%.2f", float64(e.AverageRepositories/100)))
+	fmt.Fprintf(&buf, "| symbols | %vGBꜝ | ~ 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100)))
 	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
 
 	fmt.Fprintf(&buf, "\n")
