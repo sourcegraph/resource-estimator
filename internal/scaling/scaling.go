@@ -185,7 +185,6 @@ type Estimate struct {
 	AverageRepositories int                       // Number of total repositories including monorepos: number repos + monorepos x 50
 	ContactSupport      bool                      // Contact support required
 	EngagedUsers        int                       // Number of users x engagement rate
-	IndexServerDiskSize int                       // Disk size of Indexserver: gitserver disk space x gitserver replicas count
 	Services            map[string]ReferencePoint // List of services output
 	UserRepoSumRatio    int                       // The ratio used to determine deployment size:  (user count + average repos count) / 1000
 
@@ -234,22 +233,6 @@ func (e *Estimate) Calculate() *Estimate {
 	}
 	if e.DeploymentType == "type" {
 		e.DeploymentType = "kubernetes"
-	}
-	// Get index server disk size
-	// Typically the gitserver disk size multipled by the number of gitserver shards
-	// formula: size of gitserver (size of all repos x 120%) x gitserver replicas
-	// ref: https://github.com/sourcegraph/deploy-sourcegraph/blob/v3.41.0/base/indexed-search/indexed-search.StatefulSet.yaml#L84
-	switch {
-	case e.UserRepoSumRatio < 5:
-		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100
-	case e.UserRepoSumRatio < 20:
-		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 2
-	case e.UserRepoSumRatio < 30:
-		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 3
-	case e.UserRepoSumRatio < int(UserRepoSumRatioRange.Max):
-		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 4
-	default:
-		e.IndexServerDiskSize = e.TotalRepoSize * 120 / 100 * 5
 	}
 	// Ensure we have the same replica counts for services that live in the
 	// same pod.
@@ -430,8 +413,9 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "| gitserver | %v | At least 20 percent more than the total size of all repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
 	fmt.Fprintf(&buf, "| minio | %v | The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
 	fmt.Fprintf(&buf, "| pgsql | %v | Two times the size of your current database is required for migration. |\n", fmt.Sprint(e.TotalRepoSize*2, "GB"))
-	fmt.Fprintf(&buf, "| indexed-search | %v | The disk size for gitserver multiplied by the number of gitserver replicas. |\n", fmt.Sprint(e.IndexServerDiskSize, "GBꜝ"))
-	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the associated service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
+	// indexed-search disk size = gitserver/2 ref: https://sourcegraph.slack.com/archives/C07KZF47K/p1656516881102679?thread_ts=1656436334.261969&cid=C07KZF47K
+	fmt.Fprintf(&buf, "| indexed-search | %v | Approximately the total disk size for gitserver divided by 2. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100/2), "GBꜝ"))
+	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
 
 	fmt.Fprintf(&buf, "\n")
 
