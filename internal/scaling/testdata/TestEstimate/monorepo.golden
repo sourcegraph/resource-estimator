@@ -34,19 +34,20 @@
 
 | Service | Size | Note |
 |---------|:------------:|------|
-| codeinsights-db | 200GB | Starts at default value as the value depends entirely on usage and the specific Insights that are being created by users. |
-| codeintel-db | 200GB | Starts at default value as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repositories indexed by Rockskip is required. |
-| gitserver | 36GBꜝ | At least 20 percent more than the total size of all repositories. |
-| minio | 1GB | The size of the largest LSIF index file. |
-| pgsql | 60GB | Two times the size of your current database is required for migration. |
-| indexed-search | 36GBꜝ | The disk size for gitserver multiplied by the number of gitserver replicas. |
-> ꜝ<small> This value represents the total disk space required for the associated service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
+| codeinsights-db | 200GB | Starts at default as the value depends entirely on usage and the specific Insights that are being created by users. |
+| codeintel-db | 200GB | Starts at default as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repositories indexed by Rockskip is required. |
+| gitserver | 36GBꜝ | ~ 20 percent more than the total size of all repositories. |
+| minio | 1GB | ~ The size of the largest LSIF index file. |
+| pgsql | 200GB | Starts at default as the value grows depending on the number of active users and activity. |
+| indexed-search | 18GBꜝ | Approximately half of the total gitserver disk size. |
+> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
 
 ### Ephemeral storage
 
-| Service | Size | Note |
+| Service | Limits | Note |
 |---------|:------------:|------|
-| searcher| 9GB | The size of all indexed repositories. |
-| symbols | 2GB | At least 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |
+| searcher| 0.00GBꜝ | ~ Total number of average repositories divided by 100. |
+| symbols | 2GBꜝ | ~ 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |
+> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
 
 `

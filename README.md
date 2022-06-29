@@ -1,6 +1,8 @@
-# resource-estimator
+# Sourcegraph resource estimator
 
-Sourcegraph resource estimator
+Sourcegraph resource estimator helps predict and plan the required resource for your deployment.
+
+This tool ensures you provision appropriate resources to scale your instance.
 
 ## Development Prerequisites
 
@@ -39,6 +41,10 @@ This is the best option as you can see the page with full CSS styling.
 ### Developing without the docsite
 
 You can view the page without any CSS styling at http://localhost:8080
+
+### Golden test
+
+Run `go test -update` in the internal/scaling directory to update the tests
 
 ## Releasing
 
