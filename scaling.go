@@ -172,19 +172,40 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		Users:            p.users,
 		EngagementRate:   p.engagementRate,
 		CodeInsight:      p.codeinsightEabled,
-	}).Calculate().Result()
+	}).Calculate()
+
+	markdownContent := estimate.Result()
+	jsonContent := estimate.Json()
 
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
 		p.inputs(),
-		&markdown{Content: estimate},
+		&markdown{Content: markdownContent},
 		elem.Heading3(vecty.Text("Export result")),
+		elem.Details(
+			elem.Summary(vecty.Text("Export as Helm")),
+			elem.Break(),
+			elem.TextArea(
+				vecty.Markup(vecty.Class("copy-as-markdown")),
+				vecty.Text(string(jsonContent)),
+			),
+			elem.Paragraph(
+				elem.Strong(vecty.Text("Export as Helm ")),
+				elem.Anchor(
+					vecty.Markup(
+						vecty.Markup(prop.Href("data:text/csv;charset=utf-8,"+jsonContent)),
+						vecty.Property("download", "sg_resources_estimate_helm.yaml"),
+					),
+					vecty.Text("Click to download"),
+				),
+			),
+		),
 		elem.Details(
 			elem.Summary(vecty.Text("Export as Markdown")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),
-				vecty.Text(string(estimate)),
+				vecty.Text(string(markdownContent)),
 			),
 		),
 		elem.Break(),

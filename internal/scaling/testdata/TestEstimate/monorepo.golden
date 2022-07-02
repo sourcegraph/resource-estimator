@@ -1,7 +1,7 @@
 `### Estimate summary
 
-* **Estimated total CPUs:** 37
-* **Estimated total memory:** 61g
+* **Estimated total CPUs:** 34
+* **Estimated total memory:** 59g
 * **Note:** Use the default values for services not listed below .
 * <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>
   <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>
@@ -20,13 +20,13 @@
 | frontend | 2ꜝ | - | 4 | - | 8g |
 | gitserver | 1 | - | 4 | - | 8g |
 | pgsql | 1 | - | 4 | - | 4g |
-| precise-code-intel | 1 | - | 4ꜝ | - | 6gꜝ |
+| precise-code-intel | 1 | - | 4ꜝ | - | 5gꜝ |
 | searcher | 1 | - | 2 | - | 2g |
-| symbols | 1 | - | 3ꜝ | - | 5gꜝ |
+| symbols | 1 | - | 2 | - | 3gꜝ |
 | syntect-server | 1 | - | 4 | - | 6g |
 | worker | 1 | - | 2ꜝ | - | 4g |
 | zoekt-indexserver | 1 | - | 8 | - | 12gꜝ |
-| zoekt-webserver | 1 | - | 8 | - | 8gꜝ |
+| zoekt-webserver | 1 | - | 7ꜝ | - | 8gꜝ |
 
 > ꜝ<small> This is a non-default value.</small>
 
@@ -40,7 +40,7 @@
 | minio | 1GB | ~ The size of the largest LSIF index file. |
 | pgsql | 200GB | Starts at default as the value grows depending on the number of active users and activity. |
 | indexed-search | 18GBꜝ | Approximately half of the total gitserver disk size. |
-> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
+> ꜝ<small> For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
 
 ### Ephemeral storage
 
@@ -48,6 +48,6 @@
 |---------|:------------:|------|
 | searcher| 0.00GBꜝ | ~ Total number of average repositories divided by 100. |
 | symbols | 2GBꜝ | ~ 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |
-> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>
+> ꜝ<small> For Kubernetes deployments, set the resources.ephemeral-storage size equal to this value divided by the number of replicas.</small>
 
 `

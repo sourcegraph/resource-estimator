@@ -9,12 +9,12 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "frontend",
 		ScalingFactor: ByEngagedUsers, // UsersRange = {5, 10000}
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: UsersRange.Max}, // estimate
-			{Replicas: 3, CPU: Resource{4, 8}, MemoryGB: Resource{8, 16}, Value: 5000},           // estimate
-			{Replicas: 3, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2100},            // existing deployment: #4
-			{Replicas: 2, CPU: Resource{2, 4}, MemoryGB: Resource{4, 8}, Value: 2050},            // existing deployment: #45
-			{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}, Value: UsersRange.Min},  // default for instance with <2000 users without code-insight
+		ReferencePoints: []Service{
+			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: UsersRange.Max}, // estimate
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 5000},           // estimate
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 2100},            // existing deployment: #4
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 2050},            // existing deployment: #45
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: UsersRange.Min},  // default for instance with <2000 users without code-insight
 		},
 	},
 
@@ -22,16 +22,16 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "gitserver",
 		ScalingFactor: ByUserRepoSumRatio,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 5, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: UserRepoSumRatioRange.Max}, // estimate
-			{Replicas: 4, CPU: Resource{16, 16}, MemoryGB: Resource{32, 32}, Value: 150},                       // estimate
-			{Replicas: 4, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 50},                          // existing deployment: dogfood
-			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 30},                          // estimate
-			{Replicas: 3, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 20},                          // estimate
-			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{32, 32}, Value: 10},                          // estimate
-			{Replicas: 2, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 5},                           // estimate
-			{Replicas: 1, CPU: Resource{8, 8}, MemoryGB: Resource{16, 16}, Value: 2},                           // estimate
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: UserRepoSumRatioRange.Min},     // default for instance with <4000 repos
+		ReferencePoints: []Service{
+			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: UserRepoSumRatioRange.Max}, // estimate
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: 150},                       // estimate
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 50},                          // existing deployment: dogfood
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 8, MEM: 32}, Limits: Resource{CPU: 8, MEM: 32}}, Value: 30},                          // estimate
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 20},                          // estimate
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 8, MEM: 32}, Limits: Resource{CPU: 8, MEM: 32}}, Value: 10},                          // estimate
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 5},                           // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 2},                           // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Value: UserRepoSumRatioRange.Min},     // default for instance with <4000 repos
 		},
 	},
 
@@ -39,11 +39,11 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "pgsql",
 		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{7, 7}, MemoryGB: Resource{32, 32}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{16, 16}, Value: 25000},                        // existing deployment: #4
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}, Value: 4000},                           // existing deployment: #43
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}, Value: AverageRepositoriesRange.Min},   // bare minimum
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 7, MEM: 32}, Limits: Resource{CPU: 7, MEM: 32}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 16}, Limits: Resource{CPU: 4, MEM: 16}}, Value: 25000},                        // existing deployment: #4
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4000},                           // existing deployment: #43
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Value: AverageRepositoriesRange.Min},   // bare minimum
 		},
 	},
 
@@ -54,16 +54,16 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "precise-code-intel",
 		ScalingFactor: ByLargestIndexSize,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 4, CPU: Resource{4, 4}, MemoryGB: Resource{25, 50}, Value: LargestIndexSizeRange.Max}, // calculation
-			{Replicas: 4, CPU: Resource{4, 4}, MemoryGB: Resource{20, 41}, Value: 81},                        // calculation
-			{Replicas: 3, CPU: Resource{4, 4}, MemoryGB: Resource{29, 58}, Value: 80},                        // calculation
-			{Replicas: 3, CPU: Resource{4, 4}, MemoryGB: Resource{20, 40}, Value: 61},                        // calculation
-			{Replicas: 2, CPU: Resource{4, 4}, MemoryGB: Resource{30, 60}, Value: 60},                        // calculation
-			{Replicas: 2, CPU: Resource{4, 4}, MemoryGB: Resource{16, 32}, Value: 32},                        // calculation
-			{Replicas: 2, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 8},                           // calculation
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 16}, Value: 7},                          // calculation
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{2, 4}, Value: LargestIndexSizeRange.Min},   // bare minimum
+		ReferencePoints: []Service{
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 4, MEM: 25}, Limits: Resource{CPU: 4, MEM: 50}}, Value: LargestIndexSizeRange.Max}, // calculation
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 4, MEM: 20}, Limits: Resource{CPU: 4, MEM: 41}}, Value: 81},                        // calculation
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 29}, Limits: Resource{CPU: 4, MEM: 58}}, Value: 80},                        // calculation
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 20}, Limits: Resource{CPU: 4, MEM: 40}}, Value: 61},                        // calculation
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 30}, Limits: Resource{CPU: 4, MEM: 60}}, Value: 60},                        // calculation
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 16}, Limits: Resource{CPU: 4, MEM: 32}}, Value: 32},                        // calculation
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 8},                           // calculation
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: 7},                          // calculation
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 2}, Limits: Resource{CPU: 4, MEM: 4}}, Value: LargestIndexSizeRange.Min},   // bare minimum
 		},
 	},
 
@@ -71,7 +71,7 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "searcher",
 		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
+		ReferencePoints: []Service{
 			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // estimate
 			{Replicas: 6, Value: 25000},                        // existing deployment: #4 & 12
 			{Replicas: 4, Value: 14000},                        // existing deployment: #51
@@ -83,11 +83,20 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "searcher",
 		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Max},   // estimate
-			{CPU: Resource{3, 6}, MemoryGB: Resource{4, 8}, Value: 25000},                          // existing deployment: #4
-			{CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: 4000},                          // existing deployment: #47
-			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: AverageRepositoriesRange.Min}, // bare minimum
+		ReferencePoints: []Service{
+			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4}, Limits: Resource{CPU: 6, MEM: 8}}, Value: AverageRepositoriesRange.Max},   // estimate
+			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4}, Limits: Resource{CPU: 6, MEM: 8}}, Value: 25000},                          // existing deployment: #4
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 4000},                          // existing deployment: #43
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 2}}, Value: AverageRepositoriesRange.Min}, // default
+		},
+	},
+	{
+		ServiceName:   "searcher",
+		ScalingFactor: ByAverageRepositories,
+		ReferencePoints: []Service{
+			{Resources: Resources{Requests: Resource{EPH: 25 * 19}, Limits: Resource{EPH: 26 * 19}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood - 4replica with 120Gi to serve 50k+ repos
+			{Resources: Resources{Requests: Resource{EPH: 25}, Limits: Resource{EPH: 26}}, Value: 4000},                                   // existing deployment: #43
+			{Resources: Resources{Requests: Resource{EPH: 25}, Limits: Resource{EPH: 26}}, Value: AverageRepositoriesRange.Min},           // default
 		},
 	},
 
@@ -96,7 +105,7 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "symbols",
 		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
+		ReferencePoints: []Service{
 			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // estimate
 			{Replicas: 3, Value: 25000},                        // estimate
 			{Replicas: 2, Value: 4000},                         // estimate
@@ -106,10 +115,11 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "symbols",
 		ScalingFactor: ByLargeMonorepos,
-		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{2, 4}, MemoryGB: Resource{8, 16}, Value: LargeMonoreposRange.Max},  // estimate
-			{CPU: Resource{2, 4}, MemoryGB: Resource{2, 8}, Value: 2},                         // estimate
-			{CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}, Value: LargeMonoreposRange.Min}, // bare minimum
+		ReferencePoints: []Service{
+			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: LargeMonoreposRange.Max},  // estimate
+			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4},                         // estimate
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 2},                        // existing deployment: #43
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 2}}, Value: LargeMonoreposRange.Min}, // default
 		},
 	},
 
@@ -122,10 +132,10 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "syntect-server",
 		ScalingFactor: ByEngagedUsers,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{2, 8}, MemoryGB: Resource{6, 12}, Value: UsersRange.Max}, // estimate
-			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: 5000},           // existing deployment: average between 27 and
-			{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}, Value: UsersRange.Min}, // bare minimum
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 6}, Limits: Resource{CPU: 8, MEM: 12}}, Value: UsersRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 4, MEM: 6}}, Value: 5000},           // existing deployment: average between 27 and
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 4, MEM: 6}}, Value: UsersRange.Min}, // default
 		},
 	},
 
@@ -133,10 +143,10 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "worker",
 		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 16}, Value: AverageRepositoriesRange.Max}, // estimate
-			{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 8}, Value: 4000},                          // estimate
-			{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}, Value: AverageRepositoriesRange.Min}, // bare minimum
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: AverageRepositoriesRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4000},                          // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: AverageRepositoriesRange.Min}, // default
 		},
 	},
 
@@ -144,10 +154,10 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "zoekt-indexserver",
 		ScalingFactor: ByLargeMonorepos,
-		ReferencePoints: []ReferencePoint{
-			{MemoryGB: Resource{16, 16}, Value: LargeMonoreposRange.Max}, // estimate
-			{MemoryGB: Resource{16, 16}, Value: 2},                       // estimate
-			{MemoryGB: Resource{8, 8}, Value: LargeMonoreposRange.Min},   // bare minimum
+		ReferencePoints: []Service{
+			{Resources: Resources{Requests: Resource{MEM: 16}, Limits: Resource{MEM: 16}}, Value: LargeMonoreposRange.Max}, // estimate
+			{Resources: Resources{Requests: Resource{MEM: 16}, Limits: Resource{MEM: 16}}, Value: 2},                       // estimate
+			{Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 8}}, Value: LargeMonoreposRange.Min},   // default
 		},
 	},
 	// CPU usage and replicas scale based on the number of average repos it must index as it indexes one repo at a time
@@ -155,12 +165,12 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "zoekt-indexserver",
 		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 4, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Max}, // estimate: at 50k repos the instance will have 4 replics so 8CPU limit per replica should be enough
-			{Replicas: 2, CPU: Resource{4, 8}, Value: 14000},                        // existing deployment: #26 - 16 CPU / 2 replicas = 8
-			{Replicas: 1, CPU: Resource{4, 8}, Value: 10000},                        // existing deployment: #37
-			{Replicas: 1, CPU: Resource{4, 8}, Value: 1500},                         // existing deployment: #44
-			{Replicas: 1, CPU: Resource{4, 8}, Value: AverageRepositoriesRange.Min}, // bare minimum
+		ReferencePoints: []Service{
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: AverageRepositoriesRange.Max}, // estimate: 4 replics to serve 50k repos so 8CPU limit per replica should be enough
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: 14000},                        // existing deployment: #26 - 16 CPU / 2 replicas = 8
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: 10000},                        // existing deployment: #37
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: 1500},                         // existing deployment: #44
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: AverageRepositoriesRange.Min}, // default
 		},
 	},
 
@@ -169,11 +179,11 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "zoekt-webserver",
 		ScalingFactor: ByAverageRepositories,
-		ReferencePoints: []ReferencePoint{
-			{Replicas: 4, MemoryGB: Resource{25, 50}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
-			{Replicas: 2, MemoryGB: Resource{8, 16}, Value: 14000},                         // existing deployment: #26
-			{Replicas: 1, MemoryGB: Resource{30, 60}, Value: 10000},                        // existing deployment: #37
-			{Replicas: 1, MemoryGB: Resource{4, 8}, Value: AverageRepositoriesRange.Min},   // bare minimum
+		ReferencePoints: []Service{
+			{Replicas: 4, Resources: Resources{Requests: Resource{MEM: 25}, Limits: Resource{MEM: 50}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
+			{Replicas: 2, Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 16}}, Value: 14000},                         // existing deployment: #26
+			{Replicas: 1, Resources: Resources{Requests: Resource{MEM: 30}, Limits: Resource{MEM: 60}}, Value: 10000},                        // existing deployment: #37
+			{Replicas: 1, Resources: Resources{Requests: Resource{MEM: 4}, Limits: Resource{MEM: 8}}, Value: AverageRepositoriesRange.Min},   // default
 		},
 	},
 	// CPU usage is based on the number of users it serves (and the size of the index, but we do not account for
@@ -181,11 +191,11 @@ var References = []ServiceScale{
 	{
 		ServiceName:   "zoekt-webserver",
 		ScalingFactor: ByEngagedUsers,
-		ReferencePoints: []ReferencePoint{
-			{CPU: Resource{8, 16}, Value: UsersRange.Max}, // estimate
-			{CPU: Resource{6, 12}, Value: 15000},          // existing deployment: #51
-			{CPU: Resource{4, 8}, Value: 2100},            // existing deployment: #44
-			{CPU: Resource{.5, 2}, Value: UsersRange.Min}, // bare minimum
+		ReferencePoints: []Service{
+			{Resources: Resources{Requests: Resource{CPU: 8}, Limits: Resource{CPU: 16}}, Value: UsersRange.Max}, // estimate
+			{Resources: Resources{Requests: Resource{CPU: 6}, Limits: Resource{CPU: 12}}, Value: 15000},          // existing deployment: #51
+			{Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: 2100},            // existing deployment: #44
+			{Resources: Resources{Requests: Resource{CPU: .5}, Limits: Resource{CPU: 2}}, Value: UsersRange.Min}, // default
 		},
 	},
 }
@@ -194,59 +204,60 @@ var References = []ServiceScale{
 // recommend the same number of replicas.
 var pods = map[string][]string{
 	"indexed-search": {"zoekt-webserver", "zoekt-indexserver"},
+	// "redis":          {"redis-cache", "redis-store"},
 }
 
-var defaults = map[string]map[string]ReferencePoint{
+var defaults = map[string]map[string]Service{
 	"frontend": {
-		"kubernetes":     ReferencePoint{Replicas: 2, CPU: Resource{2, 2}, MemoryGB: Resource{2, 4}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 8}},
+		"kubernetes":     Service{Replicas: 2, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}, Requests: Resource{CPU: 2, MEM: 2}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}},
 	},
 	"gitserver": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{8, 8}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 8}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 8}, Requests: Resource{CPU: 4, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}},
 	},
 	"pgsql": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{4, 4}, MemoryGB: Resource{4, 4}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}, Requests: Resource{CPU: 4, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
 	},
 	"precise-code-intel": {
-		"kubernetes":     ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 4}},
-	},
-	"redis-store": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 1}, MemoryGB: Resource{0, 7}},
+		"kubernetes":     Service{Replicas: 2, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}, Requests: Resource{CPU: .5, MEM: 2}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}},
 	},
 	"redis-cache": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{7, 7}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 1}, MemoryGB: Resource{0, 7}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 7, MEM: 7}, Requests: Resource{CPU: 1, MEM: 1}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}},
+	},
+	"redis-store": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 7, MEM: 7}, Requests: Resource{CPU: 1, MEM: 1}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}},
 	},
 	"repo-updater": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{1, 1}, MemoryGB: Resource{.5, 2}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 2}, Requests: Resource{CPU: 1, MEM: .5}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
 	},
 	"searcher": {
-		"kubernetes":     ReferencePoint{Replicas: 2, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 2}},
+		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 25}, Limits: Resource{CPU: 2, MEM: 2, EPH: 26}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 2, EPH: 128}}},
 	},
 	"symbols": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{.5, 2}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 2}, MemoryGB: Resource{0, 4}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 10}, Limits: Resource{CPU: 2, MEM: 2, EPH: 12}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4, EPH: 128}}},
 	},
 	"syntect-server": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 4}, MemoryGB: Resource{2, 6}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 6}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 5, MEM: 6}, Requests: Resource{CPU: .5, MEM: 2}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 6}}},
 	},
 	"worker": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 4}, MemoryGB: Resource{0, 4}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
 	},
 	"zoekt-webserver": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{4, 8}, MemoryGB: Resource{4, 8}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 8}, MemoryGB: Resource{0, 16}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 16}}},
 	},
 	"zoekt-indexserver": {
-		"kubernetes":     ReferencePoint{Replicas: 1, CPU: Resource{.5, 2}, MemoryGB: Resource{2, 4}},
-		"docker-compose": ReferencePoint{Replicas: 1, CPU: Resource{0, 8}, MemoryGB: Resource{0, 50}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 50}}},
 	},
 }

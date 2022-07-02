@@ -2,9 +2,12 @@ package scaling
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
+
+	"github.com/ghodss/yaml"
 )
 
 type Factor int
@@ -19,24 +22,46 @@ const (
 	ByUserRepoSumRatio    Factor = iota
 )
 
+type Service struct {
+	// Value corresponding to the scaling factor type (users, repositories, large monorepos, etc.)
+	Value float64 `json:"-"`
+	// Optional values indicating that at the specified Value, these service properties are required.
+	Replicas  int       `json:"replicaCount,omitempty"`
+	Resources Resources `json:"resources,omitempty"`
+	Storage   float64   `json:"storageSize,omitempty"`
+	// ContactSupport, when true, indicates that for the given value support should be contacted.
+	ContactSupport bool `json:"-"`
+}
+type Resources struct {
+	Limits   Resource `json:"limits,omitempty"`
+	Requests Resource `json:"requests,omitempty"`
+}
 type Resource struct {
+	CPU  float64 `json:"cpu,string,omitempty"`
+	MEM  float64 `json:"-"`
+	EPH  float64 `json:"-"`
+	MEMS string  `json:"memory,omitempty"`
+	EPHS string  `json:"ephemeral-storage,omitempty"`
+}
+
+type ResourceRange struct {
 	Request, Limit float64
 }
 
-func (r Resource) Add(o Resource) Resource {
-	return Resource{r.Request + o.Request, r.Limit + o.Limit}
+func (r ResourceRange) Add(o ResourceRange) ResourceRange {
+	return ResourceRange{Request: r.Request + o.Request, Limit: r.Limit + o.Limit}
 }
 
-func (r Resource) Sub(o Resource) Resource {
-	return Resource{r.Request - o.Request, r.Limit - o.Limit}
+func (r ResourceRange) Sub(o ResourceRange) ResourceRange {
+	return ResourceRange{Request: r.Request - o.Request, Limit: r.Limit - o.Limit}
 }
 
-func (r Resource) MulScalar(f float64) Resource {
-	return Resource{r.Request * f, r.Limit * f}
+func (r ResourceRange) MulScalar(f float64) ResourceRange {
+	return ResourceRange{Request: r.Request * f, Limit: r.Limit * f}
 }
 
-func (r Resource) round() Resource {
-	return Resource{resourceRound(r.Request), resourceRound(r.Limit)}
+func (r ResourceRange) round() ResourceRange {
+	return ResourceRange{Request: resourceRound(r.Request), Limit: resourceRound(r.Limit)}
 }
 
 // resourceRound rounds numbers > 1 to the nearest whole number, and numbers < 1 to the nearest
@@ -51,43 +76,48 @@ func resourceRound(f float64) float64 {
 	return math.Round(f*4) / 4
 }
 
-type ReferencePoint struct {
-	// Value corresponding to the scaling factor type (users, repositories, large monorepos, etc.)
-	Value float64
-
-	// Optional values indicating that at the specified Value, these service properties are required.
-	Replicas      int
-	CPU, MemoryGB Resource
-
-	// ContactSupport, when true, indicates that for the given value support should be contacted.
-	ContactSupport bool
-}
-
-func (r ReferencePoint) join(o ReferencePoint) ReferencePoint {
+func (r Service) join(o Service) Service {
 	r.Value = 0
 	if r.Replicas == 0 {
 		r.Replicas = o.Replicas
 	}
-	if r.CPU == (Resource{}) {
-		r.CPU = o.CPU
+	if (ResourceRange{r.Resources.Requests.CPU, r.Resources.Limits.CPU}) == (ResourceRange{}) {
+		r.Resources.Requests.CPU = math.Trunc(o.Resources.Requests.CPU)
+		r.Resources.Limits.CPU = math.Trunc(o.Resources.Limits.CPU)
 	}
-	if r.MemoryGB == (Resource{}) {
-		r.MemoryGB = o.MemoryGB
+	if (ResourceRange{r.Resources.Requests.MEM, r.Resources.Limits.MEM}) == (ResourceRange{}) {
+		r.Resources.Requests.MEM = math.Trunc(o.Resources.Requests.MEM)
+		r.Resources.Limits.MEM = math.Trunc(o.Resources.Limits.MEM)
+		r.Resources.Requests.MEMS = fmt.Sprintf("%vG", int(math.Round(o.Resources.Requests.MEM)))
+		r.Resources.Limits.MEMS = fmt.Sprintf("%vG", int(math.Round(o.Resources.Limits.MEM)))
+	}
+	if (ResourceRange{r.Resources.Requests.EPH, r.Resources.Limits.EPH}) == (ResourceRange{}) {
+		r.Resources.Requests.EPH = math.Trunc(o.Resources.Requests.EPH)
+		r.Resources.Limits.EPH = math.Trunc(o.Resources.Limits.EPH)
 	}
 	r.ContactSupport = r.ContactSupport || o.ContactSupport
 	return r
 }
 
-func (r ReferencePoint) round() ReferencePoint {
-	r.CPU = r.CPU.round()
-	r.MemoryGB = r.MemoryGB.round()
+func (r Service) round() Service {
+	cpuRound := ResourceRange{r.Resources.Requests.CPU, r.Resources.Limits.CPU}.round()
+	memRound := ResourceRange{r.Resources.Requests.MEM, r.Resources.Limits.MEM}.round()
+	ephRound := ResourceRange{r.Resources.Requests.EPH, r.Resources.Limits.EPH}.round()
+	r.Resources.Requests.CPU = cpuRound.Request
+	r.Resources.Limits.CPU = cpuRound.Limit
+	r.Resources.Requests.MEM = memRound.Request
+	r.Resources.Limits.MEM = memRound.Limit
+	r.Resources.Requests.EPH = ephRound.Request
+	r.Resources.Limits.EPH = ephRound.Limit
+	r.Resources.Requests.MEMS = fmt.Sprintf("%vG", int(math.Round(memRound.Request)))
+	r.Resources.Limits.MEMS = fmt.Sprintf("%vG", int(math.Round(memRound.Limit)))
 	return r
 }
 
 type ServiceScale struct {
 	ServiceName     string
 	ScalingFactor   Factor
-	ReferencePoints []ReferencePoint
+	ReferencePoints []Service
 }
 
 type Range struct {
@@ -123,10 +153,10 @@ func init() {
 	}
 }
 
-func interpolateReferencePoints(refs []ReferencePoint, value float64) ReferencePoint {
+func interpolateReferencePoints(refs []Service, value float64) Service {
 	// Find a reference point below the value (a) and above the value (b).
 	var (
-		a, b  ReferencePoint
+		a, b  Service
 		found bool
 	)
 	for i, ref := range refs {
@@ -151,14 +181,25 @@ func interpolateReferencePoints(refs []ReferencePoint, value float64) ReferenceP
 	valueRange := b.Value - a.Value
 	replicasRange := float64(b.Replicas - a.Replicas)
 	scalingFactor := (value - a.Value) / orOne(valueRange)
-	cpuRange := b.CPU.Sub(a.CPU)
-	memoryGBRange := b.MemoryGB.Sub(a.MemoryGB)
-
-	return ReferencePoint{
+	cpuRange := ResourceRange{Request: b.Resources.Requests.CPU, Limit: b.Resources.Limits.CPU}.Sub(ResourceRange{Request: a.Resources.Requests.CPU, Limit: a.Resources.Limits.CPU})
+	memoryGBRange := ResourceRange{Request: b.Resources.Requests.MEM, Limit: b.Resources.Limits.MEM}.Sub(ResourceRange{Request: a.Resources.Requests.MEM, Limit: a.Resources.Limits.MEM})
+	cpuValues := ResourceRange{Request: a.Resources.Requests.CPU, Limit: a.Resources.Limits.CPU}.Add(cpuRange.MulScalar(scalingFactor))
+	memValues := ResourceRange{Request: a.Resources.Requests.MEM, Limit: a.Resources.Limits.MEM}.Add(memoryGBRange.MulScalar(scalingFactor))
+	return Service{
 		Value:    a.Value * scalingFactor,
 		Replicas: a.Replicas + (int(math.Round(replicasRange * scalingFactor))),
-		CPU:      a.CPU.Add(cpuRange.MulScalar(scalingFactor)),
-		MemoryGB: a.MemoryGB.Add(memoryGBRange.MulScalar(scalingFactor)),
+		Resources: Resources{
+			Requests: Resource{
+				CPU:  cpuValues.Request,
+				MEM:  memValues.Request,
+				MEMS: fmt.Sprintf("%vG", int(math.Round(memValues.Request))),
+			},
+			Limits: Resource{
+				CPU:  cpuValues.Limit,
+				MEM:  memValues.Limit,
+				MEMS: fmt.Sprintf("%vG", int(math.Round(memValues.Limit))),
+			},
+		},
 	}
 }
 
@@ -182,11 +223,11 @@ type Estimate struct {
 	Users            int    // Number of users
 
 	// calculated results
-	AverageRepositories int                       // Number of total repositories including monorepos: number repos + monorepos x 50
-	ContactSupport      bool                      // Contact support required
-	EngagedUsers        int                       // Number of users x engagement rate
-	Services            map[string]ReferencePoint // List of services output
-	UserRepoSumRatio    int                       // The ratio used to determine deployment size:  (user count + average repos count) / 1000
+	AverageRepositories int                // Number of total repositories including monorepos: number repos + monorepos x 50
+	ContactSupport      bool               // Contact support required
+	EngagedUsers        int                // Number of users x engagement rate
+	Services            map[string]Service // List of services output
+	UserRepoSumRatio    int                // The ratio used to determine deployment size:  (user count + average repos count) / 1000
 
 	// These fields are the sum of the _requests_ of all services in the deployment, plus 50% of
 	// the difference in limits. The thinking is that requests are often far too low as they do not
@@ -201,7 +242,7 @@ func (e *Estimate) Calculate() *Estimate {
 	e.EngagedUsers = e.Users * e.EngagementRate / 100
 	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*MonorepoFactor) / 1000
 	e.AverageRepositories = e.Repositories + e.LargeMonorepos*MonorepoFactor
-	e.Services = make(map[string]ReferencePoint)
+	e.Services = make(map[string]Service)
 	for _, ref := range References {
 		var value float64
 		switch ref.ScalingFactor {
@@ -255,19 +296,19 @@ func (e *Estimate) Calculate() *Estimate {
 		largestCPULimit, largestMemoryGBLimit                                float64
 		visited                                                              = map[string]struct{}{}
 	)
-	countRef := func(service string, ref ReferencePoint) {
+	countRef := func(service string, ref Service) {
 		if _, ok := visited[service]; ok {
 			return
 		}
 		visited[service] = struct{}{}
-		sumCPURequests += ref.CPU.Request
-		sumCPULimits += ref.CPU.Limit
-		sumMemoryGBRequests += ref.MemoryGB.Request
-		sumMemoryGBLimits += ref.MemoryGB.Limit
-		if v := ref.CPU.Limit; v > largestCPULimit {
+		sumCPURequests += ref.Resources.Requests.CPU
+		sumCPULimits += ref.Resources.Limits.CPU
+		sumMemoryGBRequests += ref.Resources.Requests.MEM
+		sumMemoryGBLimits += ref.Resources.Limits.MEM
+		if v := ref.Resources.Limits.CPU; v > largestCPULimit {
 			largestCPULimit = v
 		}
-		if v := ref.MemoryGB.Limit; v > largestMemoryGBLimit {
+		if v := ref.Resources.Limits.MEM; v > largestMemoryGBLimit {
 			largestMemoryGBLimit = v
 		}
 	}
@@ -358,28 +399,28 @@ func (e *Estimate) Result() []byte {
 				replicas = fmt.Sprint(ref.Replicas, plus, "ꜝ")
 			}
 
-			if ref.CPU.Request == def.CPU.Request {
-				cpuRequest = fmt.Sprint(ref.CPU.Request, plus)
+			if ref.Resources.Requests.CPU == def.Resources.Requests.CPU {
+				cpuRequest = fmt.Sprint(ref.Resources.Requests.CPU, plus)
 			} else {
-				cpuRequest = fmt.Sprint(ref.CPU.Request, "ꜝ")
+				cpuRequest = fmt.Sprint(ref.Resources.Requests.CPU, "ꜝ")
 			}
 
-			if ref.CPU.Limit == def.CPU.Limit {
-				cpuLimit = fmt.Sprint(ref.CPU.Limit, plus)
+			if ref.Resources.Limits.CPU == def.Resources.Limits.CPU {
+				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU, plus)
 			} else {
-				cpuLimit = fmt.Sprint(ref.CPU.Limit, plus, "ꜝ")
+				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU, plus, "ꜝ")
 			}
 
-			if ref.MemoryGB.Request == def.MemoryGB.Request {
-				memoryGBRequest = fmt.Sprint(ref.MemoryGB.Request, "g", plus)
+			if ref.Resources.Requests.MEM == def.Resources.Requests.MEM {
+				memoryGBRequest = fmt.Sprint(ref.Resources.Requests.MEM, "g", plus)
 			} else {
-				memoryGBRequest = fmt.Sprint("", ref.MemoryGB.Request, "g", plus, "ꜝ")
+				memoryGBRequest = fmt.Sprint("", ref.Resources.Requests.MEM, "g", plus, "ꜝ")
 			}
 
-			if ref.MemoryGB.Limit == def.MemoryGB.Limit {
-				memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus)
+			if ref.Resources.Limits.MEM == def.Resources.Limits.MEM {
+				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM, "g", plus)
 			} else {
-				memoryGBLimit = fmt.Sprint(ref.MemoryGB.Limit, "g", plus, "ꜝ")
+				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM, "g", plus, "ꜝ")
 			}
 		}
 
@@ -415,7 +456,7 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "| pgsql | 200GB | Starts at default as the value grows depending on the number of active users and activity. |\n")
 	// indexed-search disk size = gitserver*2/3 ref: PR#17
 	fmt.Fprintf(&buf, "| indexed-search | %v | Approximately half of the total gitserver disk size. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100/2), "GBꜝ"))
-	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
+	fmt.Fprintf(&buf, "> ꜝ<small> For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
 
 	fmt.Fprintf(&buf, "\n")
 
@@ -426,9 +467,23 @@ func (e *Estimate) Result() []byte {
 	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
 	fmt.Fprintf(&buf, "| searcher| %vGBꜝ | ~ Total number of average repositories divided by 100. |\n", fmt.Sprintf("%.2f", float64(e.AverageRepositories/100)))
 	fmt.Fprintf(&buf, "| symbols | %vGBꜝ | ~ 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100)))
-	fmt.Fprintf(&buf, "> ꜝ<small> This value represents the total disk space required for the service. For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
+	fmt.Fprintf(&buf, "> ꜝ<small> For Kubernetes deployments, set the resources.ephemeral-storage size equal to this value divided by the number of replicas.</small>\n")
 
 	fmt.Fprintf(&buf, "\n")
 
 	return buf.Bytes()
+}
+
+func (e *Estimate) Json() string {
+	var c = e.Services
+	j, err := json.Marshal(c)
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+	}
+	y, err := yaml.JSONToYAML(j)
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+	}
+	fmt.Println(string(y))
+	return string(y)
 }
