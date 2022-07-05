@@ -28,7 +28,8 @@ type Service struct {
 	// Optional values indicating that at the specified Value, these service properties are required.
 	Replicas  int       `json:"replicaCount,omitempty"`
 	Resources Resources `json:"resources,omitempty"`
-	Storage   float64   `json:"storageSize,omitempty"`
+	Storage   float64   `json:"-"`
+	PVC       string    `json:"storageSize,omitempty"`
 	// ContactSupport, when true, indicates that for the given value support should be contacted.
 	ContactSupport bool `json:"-"`
 }
@@ -37,9 +38,10 @@ type Resources struct {
 	Requests Resource `json:"requests,omitempty"`
 }
 type Resource struct {
-	CPU  float64 `json:"cpu,string,omitempty"`
+	CPU  float64 `json:"-"`
 	MEM  float64 `json:"-"`
 	EPH  float64 `json:"-"`
+	CPUO string  `json:"cpu,omitempty"`
 	MEMS string  `json:"memory,omitempty"`
 	EPHS string  `json:"ephemeral-storage,omitempty"`
 }
@@ -76,24 +78,48 @@ func resourceRound(f float64) float64 {
 	return math.Round(f*4) / 4
 }
 
+func addUnit(f float64, t string) string {
+	switch t {
+	case "CPU":
+		if f < 1 {
+			return fmt.Sprintf("%vm", math.Trunc(f*1000))
+		} else {
+			return fmt.Sprintf("%v", math.Trunc(f))
+		}
+	default:
+		if f < 1 {
+			return fmt.Sprintf("%vM", math.Trunc(f*1000))
+		}
+		return fmt.Sprintf("%vG", math.Trunc(f))
+	}
+}
+
 func (r Service) join(o Service) Service {
 	r.Value = 0
 	if r.Replicas == 0 {
 		r.Replicas = o.Replicas
 	}
 	if (ResourceRange{r.Resources.Requests.CPU, r.Resources.Limits.CPU}) == (ResourceRange{}) {
-		r.Resources.Requests.CPU = math.Trunc(o.Resources.Requests.CPU)
-		r.Resources.Limits.CPU = math.Trunc(o.Resources.Limits.CPU)
+		r.Resources.Requests.CPU = o.Resources.Requests.CPU
+		r.Resources.Limits.CPU = o.Resources.Limits.CPU
+		r.Resources.Requests.CPUO = addUnit(o.Resources.Requests.CPU, "CPU")
+		r.Resources.Limits.CPUO = addUnit(o.Resources.Limits.CPU, "CPU")
 	}
 	if (ResourceRange{r.Resources.Requests.MEM, r.Resources.Limits.MEM}) == (ResourceRange{}) {
-		r.Resources.Requests.MEM = math.Trunc(o.Resources.Requests.MEM)
-		r.Resources.Limits.MEM = math.Trunc(o.Resources.Limits.MEM)
-		r.Resources.Requests.MEMS = fmt.Sprintf("%vG", int(math.Round(o.Resources.Requests.MEM)))
-		r.Resources.Limits.MEMS = fmt.Sprintf("%vG", int(math.Round(o.Resources.Limits.MEM)))
+		r.Resources.Requests.MEM = o.Resources.Requests.MEM
+		r.Resources.Limits.MEM = o.Resources.Limits.MEM
+		r.Resources.Requests.MEMS = addUnit(o.Resources.Requests.MEM, "MEM")
+		r.Resources.Limits.MEMS = addUnit(o.Resources.Limits.MEM, "MEM")
 	}
-	if (ResourceRange{r.Resources.Requests.EPH, r.Resources.Limits.EPH}) == (ResourceRange{}) {
-		r.Resources.Requests.EPH = math.Trunc(o.Resources.Requests.EPH)
-		r.Resources.Limits.EPH = math.Trunc(o.Resources.Limits.EPH)
+	if o.Resources.Limits.EPH > 0 && (ResourceRange{r.Resources.Requests.EPH, r.Resources.Limits.EPH}) == (ResourceRange{}) {
+		r.Resources.Requests.EPH = math.Trunc((o.Resources.Limits.EPH - 2*float64(o.Replicas)) / float64(o.Replicas))
+		r.Resources.Limits.EPH = math.Trunc(o.Resources.Limits.EPH / float64(o.Replicas))
+		r.Resources.Requests.EPHS = addUnit(r.Resources.Requests.EPH, "EPH")
+		r.Resources.Limits.EPHS = addUnit(r.Resources.Limits.EPH, "EPH")
+	}
+	if o.Storage > 0 {
+		r.Storage = o.Storage / float64(o.Replicas)
+		r.PVC = fmt.Sprintf("%vGi", int(r.Storage))
 	}
 	r.ContactSupport = r.ContactSupport || o.ContactSupport
 	return r
@@ -109,8 +135,6 @@ func (r Service) round() Service {
 	r.Resources.Limits.MEM = memRound.Limit
 	r.Resources.Requests.EPH = ephRound.Request
 	r.Resources.Limits.EPH = ephRound.Limit
-	r.Resources.Requests.MEMS = fmt.Sprintf("%vG", int(math.Round(memRound.Request)))
-	r.Resources.Limits.MEMS = fmt.Sprintf("%vG", int(math.Round(memRound.Limit)))
 	return r
 }
 
@@ -183,23 +207,26 @@ func interpolateReferencePoints(refs []Service, value float64) Service {
 	scalingFactor := (value - a.Value) / orOne(valueRange)
 	cpuRange := ResourceRange{Request: b.Resources.Requests.CPU, Limit: b.Resources.Limits.CPU}.Sub(ResourceRange{Request: a.Resources.Requests.CPU, Limit: a.Resources.Limits.CPU})
 	memoryGBRange := ResourceRange{Request: b.Resources.Requests.MEM, Limit: b.Resources.Limits.MEM}.Sub(ResourceRange{Request: a.Resources.Requests.MEM, Limit: a.Resources.Limits.MEM})
+	ephRange := ResourceRange{Request: b.Resources.Requests.EPH, Limit: b.Resources.Limits.EPH}.Sub(ResourceRange{Request: a.Resources.Requests.EPH, Limit: a.Resources.Limits.EPH})
 	cpuValues := ResourceRange{Request: a.Resources.Requests.CPU, Limit: a.Resources.Limits.CPU}.Add(cpuRange.MulScalar(scalingFactor))
 	memValues := ResourceRange{Request: a.Resources.Requests.MEM, Limit: a.Resources.Limits.MEM}.Add(memoryGBRange.MulScalar(scalingFactor))
+	ephValues := ResourceRange{Request: a.Resources.Requests.EPH, Limit: a.Resources.Limits.EPH}.Add(ephRange.MulScalar(scalingFactor))
 	return Service{
 		Value:    a.Value * scalingFactor,
 		Replicas: a.Replicas + (int(math.Round(replicasRange * scalingFactor))),
 		Resources: Resources{
 			Requests: Resource{
-				CPU:  cpuValues.Request,
-				MEM:  memValues.Request,
-				MEMS: fmt.Sprintf("%vG", int(math.Round(memValues.Request))),
+				CPU: cpuValues.Request,
+				MEM: memValues.Request,
+				EPH: ephValues.Request,
 			},
 			Limits: Resource{
-				CPU:  cpuValues.Limit,
-				MEM:  memValues.Limit,
-				MEMS: fmt.Sprintf("%vG", int(math.Round(memValues.Limit))),
+				CPU: cpuValues.Limit,
+				MEM: memValues.Limit,
+				EPH: ephValues.Limit,
 			},
 		},
+		Storage: a.Storage,
 	}
 }
 
@@ -270,6 +297,19 @@ func (e *Estimate) Calculate() *Estimate {
 		if v.ContactSupport {
 			e.ContactSupport = true
 		}
+		// calculate storage size
+		switch ref.ServiceName {
+		case "gitserver":
+			v.Storage = float64(e.TotalRepoSize * 120 / 100)
+		case "minio":
+			v.Storage = float64(e.LargestIndexSize)
+		case "indexedSearch":
+			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2)
+		case "searcher":
+			v.Resources.Limits.EPH = float64(e.AverageRepositories / 100)
+		case "symbols":
+			v.Resources.Limits.EPH = float64(e.LargestRepoSize * 120 / 100)
+		}
 		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
 	}
 	if e.DeploymentType == "type" {
@@ -339,7 +379,7 @@ func (e *Estimate) Result() []byte {
 		fmt.Fprintf(&buf, "* **Estimated total CPUs:** not available\n")
 		fmt.Fprintf(&buf, "* **Estimated total memory:** not available\n")
 	}
-	fmt.Fprintf(&buf, "* **Note:** Use the default values for services not listed below .\n")
+	fmt.Fprintf(&buf, "* **Note:** Use the default values for services or values not listed below .\n")
 	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
 		if e.DeploymentType == "docker-compose" {
 			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
@@ -371,8 +411,8 @@ func (e *Estimate) Result() []byte {
 		fmt.Fprintf(&buf, "> **IMPORTANT:** Please [contact support](mailto:support@sourcegraph.com) for the service(s) that marked as not available.\n")
 		fmt.Fprintf(&buf, "\n")
 	}
-	fmt.Fprintf(&buf, "| Service | Replicas | CPU requests | CPU limits | Memory requests | Memory limits |\n")
-	fmt.Fprintf(&buf, "|---------|:----------:|:--------------:|:------------:|:-----------------:|:---------------:|\n")
+	fmt.Fprintf(&buf, "| Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | Ephemeral Requests/Limits | Storage |\n")
+	fmt.Fprintf(&buf, "|-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|\n")
 
 	var names []string
 	for service := range e.Services {
@@ -385,12 +425,14 @@ func (e *Estimate) Result() []byte {
 		def := defaults[service][e.DeploymentType]
 		ref = ref.round()
 		plus := ""
-
+		var serviceName = service
 		var replicas = "n/a"
 		var cpuRequest = "n/a"
 		var cpuLimit = "n/a"
 		var memoryGBRequest = "n/a"
 		var memoryGBLimit = "n/a"
+		eph := "-"
+		pvc := "-"
 
 		if !ref.ContactSupport {
 			if ref.Replicas == def.Replicas {
@@ -412,16 +454,29 @@ func (e *Estimate) Result() []byte {
 			}
 
 			if ref.Resources.Requests.MEM == def.Resources.Requests.MEM {
-				memoryGBRequest = fmt.Sprint(ref.Resources.Requests.MEM, "g", plus)
+				memoryGBRequest = fmt.Sprint(ref.Resources.Requests.MEMS, plus)
 			} else {
-				memoryGBRequest = fmt.Sprint("", ref.Resources.Requests.MEM, "g", plus, "ꜝ")
+				memoryGBRequest = fmt.Sprint("", ref.Resources.Requests.MEMS, plus, "ꜝ")
 			}
 
 			if ref.Resources.Limits.MEM == def.Resources.Limits.MEM {
-				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM, "g", plus)
+				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEMS, plus)
 			} else {
-				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM, "g", plus, "ꜝ")
+				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEMS, plus, "ꜝ")
 			}
+
+			if ref.Storage > 0 {
+				pvc = fmt.Sprint(ref.PVC, plus, "ꜝ")
+			}
+
+			if ref.Resources.Limits.EPH > 0 {
+				if e.DeploymentType == "docker-compose" {
+					pvc = fmt.Sprint(ref.Resources.Limits.EPHS, plus, "ꜝ")
+				} else {
+					eph = fmt.Sprint(ref.Resources.Requests.EPHS, "/", ref.Resources.Limits.EPHS, plus, "ꜝ")
+				}
+			}
+
 		}
 
 		if e.DeploymentType == "docker-compose" {
@@ -429,52 +484,39 @@ func (e *Estimate) Result() []byte {
 			memoryGBRequest = "-"
 		}
 
+		switch service {
+		case "indexedSearch":
+			serviceName = "zoekt-indexserver"
+		case "indexedSearchIndexer":
+			serviceName = "zoekt-webserver"
+		case "preciseCodeIntel":
+			serviceName = "precise-code-intel"
+		case "syntectServer":
+			serviceName = "syntect-server"
+		}
+
 		fmt.Fprintf(
 			&buf,
-			"| %v | %v | %v | %v | %v | %v |\n",
-			service,
+			"| %v | %v | %v | %v | %v | %v | %v | %v |\n",
+			serviceName,
 			replicas,
 			cpuRequest,
 			cpuLimit,
 			memoryGBRequest,
 			memoryGBLimit,
+			eph,
+			pvc,
 		)
 	}
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "> ꜝ<small> This is a non-default value.</small>\n")
 	fmt.Fprintf(&buf, "\n")
-
-	// Storage Size
-	fmt.Fprintf(&buf, "### Storage\n")
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "| Service | Size | Note |\n")
-	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
-	fmt.Fprintf(&buf, "| codeinsights-db | 200GB | Starts at default as the value depends entirely on usage and the specific Insights that are being created by users. |\n")
-	fmt.Fprintf(&buf, "| codeintel-db | 200GB | Starts at default as the value depends entirely on the size of indexes being uploaded. If Rockskip is enabled, 4 times the size of all repositories indexed by Rockskip is required. |\n")
-	fmt.Fprintf(&buf, "| gitserver | %v | ~ 20 percent more than the total size of all repositories. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100), "GBꜝ"))
-	fmt.Fprintf(&buf, "| minio | %v | ~ The size of the largest LSIF index file. |\n", fmt.Sprint(e.LargestIndexSize, "GB"))
-	fmt.Fprintf(&buf, "| pgsql | 200GB | Starts at default as the value grows depending on the number of active users and activity. |\n")
-	// indexed-search disk size = gitserver*2/3 ref: PR#17
-	fmt.Fprintf(&buf, "| indexed-search | %v | Approximately half of the total gitserver disk size. |\n", fmt.Sprint(float64(e.TotalRepoSize*120/100/2), "GBꜝ"))
-	fmt.Fprintf(&buf, "> ꜝ<small> For Kubernetes deployments, set the PVC storage size equal to this value divided by the number of replicas. </small>\n")
-
-	fmt.Fprintf(&buf, "\n")
-
-	// Ephemeral Storage
-	fmt.Fprintf(&buf, "### Ephemeral storage\n")
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "| Service | Limits | Note |\n")
-	fmt.Fprintf(&buf, "|---------|:------------:|------|\n")
-	fmt.Fprintf(&buf, "| searcher| %vGBꜝ | ~ Total number of average repositories divided by 100. |\n", fmt.Sprintf("%.2f", float64(e.AverageRepositories/100)))
-	fmt.Fprintf(&buf, "| symbols | %vGBꜝ | ~ 20 percent more than the size of your largest repository. Using an SSD is highly preferred if you are not indexing with Rockskip. |\n", fmt.Sprint(float64(e.LargestRepoSize*120/100)))
-	fmt.Fprintf(&buf, "> ꜝ<small> For Kubernetes deployments, set the resources.ephemeral-storage size equal to this value divided by the number of replicas.</small>\n")
-
 	fmt.Fprintf(&buf, "\n")
 
 	return buf.Bytes()
 }
 
-func (e *Estimate) Json() string {
+func (e *Estimate) HelmExport() string {
 	var c = e.Services
 	j, err := json.Marshal(c)
 	if err != nil {
@@ -484,6 +526,5 @@ func (e *Estimate) Json() string {
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 	}
-	fmt.Println(string(y))
 	return string(y)
 }

@@ -175,7 +175,8 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 	}).Calculate()
 
 	markdownContent := estimate.Result()
-	jsonContent := estimate.Json()
+
+	helmContent := estimate.HelmExport()
 
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
@@ -187,14 +188,14 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),
-				vecty.Text(string(jsonContent)),
+				vecty.Text(string(helmContent)),
 			),
 			elem.Paragraph(
-				elem.Strong(vecty.Text("Export as Helm ")),
+				elem.Strong(vecty.Text("Helm Override File -- ")),
 				elem.Anchor(
 					vecty.Markup(
-						vecty.Markup(prop.Href("data:text/csv;charset=utf-8,"+jsonContent)),
-						vecty.Property("download", "sg_resources_estimate_helm.yaml"),
+						vecty.Markup(prop.Href("data:text/csv;charset=utf-8,"+helmContent)),
+						vecty.Property("download", "override.yaml"),
 					),
 					vecty.Text("Click to download"),
 				),

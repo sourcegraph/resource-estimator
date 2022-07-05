@@ -35,6 +35,15 @@ var References = []ServiceScale{
 		},
 	},
 
+	{
+		ServiceName:   "minio",
+		ScalingFactor: ByLargestIndexSize,
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Max, Value: LargestIndexSizeRange.Max}, // calculation
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Min, Value: LargestIndexSizeRange.Min}, // bare minimum
+		},
+	},
+
 	// Memory usage depends on the number of active users and service-connections
 	{
 		ServiceName:   "pgsql",
@@ -52,18 +61,19 @@ var References = []ServiceScale{
 	// Scale horizontally to process a higher throughput of indexes.
 	// calculation: ~2 times of the size of the largest index
 	{
-		ServiceName:   "precise-code-intel",
+		ServiceName:   "preciseCodeIntel",
 		ScalingFactor: ByLargestIndexSize,
 		ReferencePoints: []Service{
-			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 4, MEM: 25}, Limits: Resource{CPU: 4, MEM: 50}}, Value: LargestIndexSizeRange.Max}, // calculation
-			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 4, MEM: 20}, Limits: Resource{CPU: 4, MEM: 41}}, Value: 81},                        // calculation
-			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 29}, Limits: Resource{CPU: 4, MEM: 58}}, Value: 80},                        // calculation
-			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 20}, Limits: Resource{CPU: 4, MEM: 40}}, Value: 61},                        // calculation
-			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 30}, Limits: Resource{CPU: 4, MEM: 60}}, Value: 60},                        // calculation
-			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 16}, Limits: Resource{CPU: 4, MEM: 32}}, Value: 32},                        // calculation
-			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 8},                           // calculation
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: 7},                          // calculation
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 2}, Limits: Resource{CPU: 4, MEM: 4}}, Value: LargestIndexSizeRange.Min},   // bare minimum
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 2, MEM: 25}, Limits: Resource{CPU: 4, MEM: 50}}, Value: LargestIndexSizeRange.Max}, // calculation
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 2, MEM: 20}, Limits: Resource{CPU: 4, MEM: 41}}, Value: 81},                        // calculation
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 2, MEM: 29}, Limits: Resource{CPU: 4, MEM: 58}}, Value: 80},                        // calculation
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 2, MEM: 20}, Limits: Resource{CPU: 4, MEM: 40}}, Value: 61},                        // calculation
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 30}, Limits: Resource{CPU: 4, MEM: 60}}, Value: 60},                        // calculation
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 16}, Limits: Resource{CPU: 4, MEM: 32}}, Value: 32},                        // calculation
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 8},                           // calculation
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: 7},                          // calculation
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 1},                          // default
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: LargestIndexSizeRange.Min},  // bare minimum
 		},
 	},
 
@@ -130,7 +140,7 @@ var References = []ServiceScale{
 	// These can cause runaway CPU usage (for 1 core per hang).
 	// syntect-server should normally kill such processes and restart them if that happens.
 	{
-		ServiceName:   "syntect-server",
+		ServiceName:   "syntectServer",
 		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 6}, Limits: Resource{CPU: 8, MEM: 12}}, Value: UsersRange.Max}, // estimate
@@ -144,26 +154,26 @@ var References = []ServiceScale{
 		ServiceName:   "worker",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: AverageRepositoriesRange.Max}, // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4000},                          // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: AverageRepositoriesRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 25000},                         // estimate
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: AverageRepositoriesRange.Min}, // default
 		},
 	},
 
 	// zoekt-indexserver memory usage scales based on whether it must index large monorepos
 	{
-		ServiceName:   "zoekt-indexserver",
+		ServiceName:   "indexedSearch",
 		ScalingFactor: ByLargeMonorepos,
 		ReferencePoints: []Service{
-			{Resources: Resources{Requests: Resource{MEM: 16}, Limits: Resource{MEM: 16}}, Value: LargeMonoreposRange.Max}, // estimate
-			{Resources: Resources{Requests: Resource{MEM: 16}, Limits: Resource{MEM: 16}}, Value: 2},                       // estimate
-			{Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 8}}, Value: LargeMonoreposRange.Min},   // default
+			{Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 16}}, Value: LargeMonoreposRange.Max}, // estimate
+			{Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 16}}, Value: 2},                       // estimate
+			{Resources: Resources{Requests: Resource{MEM: 4}, Limits: Resource{MEM: 8}}, Value: LargeMonoreposRange.Min},  // default
 		},
 	},
 	// CPU usage and replicas scale based on the number of average repos it must index as it indexes one repo at a time
 	// Set replica number to 0 as it will be synced with the replica number for webserver
 	{
-		ServiceName:   "zoekt-indexserver",
+		ServiceName:   "indexedSearch",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: AverageRepositoriesRange.Max}, // estimate: 4 replics to serve 50k repos so 8CPU limit per replica should be enough
@@ -177,7 +187,7 @@ var References = []ServiceScale{
 	// zoekt-webserver memory usage and replicas scale based on how many average repositories it is
 	// serving (roughly 2/3 the size of the actual repos is the memory usage).
 	{
-		ServiceName:   "zoekt-webserver",
+		ServiceName:   "indexedSearchIndexer",
 		ScalingFactor: ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 4, Resources: Resources{Requests: Resource{MEM: 25}, Limits: Resource{MEM: 50}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
@@ -189,7 +199,7 @@ var References = []ServiceScale{
 	// CPU usage is based on the number of users it serves (and the size of the index, but we do not account for
 	// that here and instead assume a correlation between # users and # repos which is generally true.)
 	{
-		ServiceName:   "zoekt-webserver",
+		ServiceName:   "indexedSearchIndexer",
 		ScalingFactor: ByEngagedUsers,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 8}, Limits: Resource{CPU: 16}}, Value: UsersRange.Max}, // estimate
@@ -203,37 +213,41 @@ var References = []ServiceScale{
 // pods list services which live in the same pod. This is used to ensure we
 // recommend the same number of replicas.
 var pods = map[string][]string{
-	"indexed-search": {"zoekt-webserver", "zoekt-indexserver"},
+	"indexed-search": {"indexedSearch", "indexedSearchIndexer"},
 	// "redis":          {"redis-cache", "redis-store"},
 }
 
 var defaults = map[string]map[string]Service{
 	"frontend": {
-		"kubernetes":     Service{Replicas: 2, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}, Requests: Resource{CPU: 2, MEM: 2}}},
+		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}},
 	},
 	"gitserver": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 8}, Requests: Resource{CPU: 4, MEM: 4}}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}},
 	},
 	"pgsql": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}, Requests: Resource{CPU: 4, MEM: 4}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
 	},
-	"precise-code-intel": {
-		"kubernetes":     Service{Replicas: 2, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}, Requests: Resource{CPU: .5, MEM: 2}}},
+	"preciseCodeIntel": {
+		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}},
 	},
-	"redis-cache": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 7, MEM: 7}, Requests: Resource{CPU: 1, MEM: 1}}},
+	"minio": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: 100},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: .5}}, Storage: 100},
+	},
+	"redisCache": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 7, MEM: 7}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}},
 	},
-	"redis-store": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 7, MEM: 7}, Requests: Resource{CPU: 1, MEM: 1}}},
+	"redisStore": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 7, MEM: 7}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}},
 	},
-	"repo-updater": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 2}, Requests: Resource{CPU: 1, MEM: .5}}},
+	"repoUpdater": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: 2}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
 	},
 	"searcher": {
@@ -244,19 +258,19 @@ var defaults = map[string]map[string]Service{
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 10}, Limits: Resource{CPU: 2, MEM: 2, EPH: 12}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4, EPH: 128}}},
 	},
-	"syntect-server": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 5, MEM: 6}, Requests: Resource{CPU: .5, MEM: 2}}},
+	"syntectServer": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 5, MEM: 6}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 6}}},
 	},
 	"worker": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
 	},
-	"zoekt-webserver": {
+	"indexedSearchIndexer": { // zoekt-webserver
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 16}}},
 	},
-	"zoekt-indexserver": {
+	"indexedSearch": { // zoekt-indexserver
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 50}}},
 	},
