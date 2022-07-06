@@ -1,7 +1,7 @@
 `### Estimate summary
 
 * **Estimated total CPUs:** 35
-* **Estimated total memory:** 57g
+* **Estimated total memory:** 56g
 * **Note:** Use the default values for services or values not listed below .
 * <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>
   <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>

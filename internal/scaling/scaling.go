@@ -49,7 +49,7 @@ type Resource struct {
 	EPHS string  `json:"ephemeral-storage,omitempty"`
 }
 type DockerServices struct {
-	Version  string                     `json:"version"`
+	Version  string                     `json:"version,string"`
 	Services map[string]DockerResources `json:"services,omitempty"`
 }
 type DockerResources struct {
@@ -73,10 +73,6 @@ func (r ResourceRange) MulScalar(f float64) ResourceRange {
 	return ResourceRange{Request: r.Request * f, Limit: r.Limit * f}
 }
 
-func (r ResourceRange) round() ResourceRange {
-	return ResourceRange{Request: resourceRound(r.Request), Limit: resourceRound(r.Limit)}
-}
-
 // resourceRound rounds numbers > 1 to the nearest whole number, and numbers < 1 to the nearest
 // quarter (.25, .5, .75, 1).
 //
@@ -90,19 +86,10 @@ func resourceRound(f float64) float64 {
 }
 
 func addUnit(f float64, t string) string {
-	switch t {
-	case "CPU":
-		if f < 1 {
-			return fmt.Sprintf("%vm", math.Trunc(f*1000))
-		} else {
-			return fmt.Sprintf("%v", math.Trunc(f))
-		}
-	default:
-		if f < 1 {
-			return fmt.Sprintf("%vM", math.Trunc(f*1000))
-		}
-		return fmt.Sprintf("%vG", math.Trunc(f))
+	if f < 1 {
+		return fmt.Sprintf("%vM", math.Trunc(f*1000))
 	}
+	return fmt.Sprintf("%v%v", math.Trunc(f), t)
 }
 
 func (r Service) join(o Service) Service {
@@ -111,50 +98,37 @@ func (r Service) join(o Service) Service {
 	if r.Replicas == 0 {
 		r.Replicas = o.Replicas
 	}
-	if (ResourceRange{r.Resources.Requests.CPU, r.Resources.Limits.CPU}) == (ResourceRange{}) {
-		r.Resources.Requests.CPU = o.Resources.Requests.CPU
-		r.Resources.Limits.CPU = o.Resources.Limits.CPU
-		r.Resources.Requests.CPUS = addUnit(o.Resources.Requests.CPU, "CPU")
-		r.Resources.Limits.CPUS = addUnit(o.Resources.Limits.CPU, "CPU")
+	if r.Resources.Requests.CPU == 0 && r.Resources.Limits.CPU == 0 {
+		r.Resources.Requests.CPU = resourceRound(o.Resources.Requests.CPU)
+		r.Resources.Limits.CPU = resourceRound(o.Resources.Limits.CPU)
+		r.Resources.Requests.CPUS = addUnit(r.Resources.Requests.CPU, "")
+		r.Resources.Limits.CPUS = addUnit(r.Resources.Limits.CPU, "")
 	}
-	if (ResourceRange{r.Resources.Requests.MEM, r.Resources.Limits.MEM}) == (ResourceRange{}) {
-		r.Resources.Requests.MEM = o.Resources.Requests.MEM
-		r.Resources.Limits.MEM = o.Resources.Limits.MEM
-		r.Resources.Requests.MEMS = addUnit(o.Resources.Requests.MEM, "MEM")
-		r.Resources.Limits.MEMS = addUnit(o.Resources.Limits.MEM, "MEM")
+	if r.Resources.Requests.MEM == 0 && r.Resources.Limits.MEM == 0 {
+		r.Resources.Requests.MEM = resourceRound(o.Resources.Requests.MEM)
+		r.Resources.Limits.MEM = resourceRound(o.Resources.Limits.MEM)
+		r.Resources.Requests.MEMS = addUnit(r.Resources.Requests.MEM, "G")
+		r.Resources.Limits.MEMS = addUnit(r.Resources.Limits.MEM, "G")
 	}
-	if o.Resources.Limits.EPH > 0 && (ResourceRange{r.Resources.Requests.EPH, r.Resources.Limits.EPH}) == (ResourceRange{}) {
-		r.Resources.Requests.EPH = o.Resources.Requests.EPH / float64(r.Replicas)
-		r.Resources.Limits.EPH = o.Resources.Limits.EPH / float64(r.Replicas)
-		r.Resources.Requests.EPHS = addUnit(r.Resources.Requests.EPH, "EPH")
-		r.Resources.Limits.EPHS = addUnit(math.Round(r.Resources.Limits.EPH), "EPH")
+	if o.Resources.Limits.EPH > 0 && r.Resources.Requests.EPH == 0 && r.Resources.Limits.EPH == 0 {
+		r.Resources.Requests.EPH = resourceRound(o.Resources.Requests.EPH)
+		r.Resources.Limits.EPH = resourceRound(o.Resources.Limits.EPH)
+		r.Resources.Requests.EPHS = addUnit(resourceRound(o.Resources.Requests.EPH/float64(r.Replicas)), "G")
+		r.Resources.Limits.EPHS = addUnit(resourceRound(o.Resources.Limits.EPH/float64(r.Replicas)), "G")
 	}
 	if o.Storage > 0 {
-		r.Storage = o.Storage
-		r.PVC = fmt.Sprintf("%vGi", int(o.Storage/float64(o.Replicas)))
+		r.Storage = resourceRound(o.Storage)
+		r.PVC = addUnit(resourceRound(o.Storage/float64(r.Replicas)), "Gi")
 	}
 	r.ContactSupport = r.ContactSupport || o.ContactSupport
 	return r
 }
 
 func (d DockerResources) join(o Service) DockerResources {
-	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*float64(o.Replicas), "CPU"))
-	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*float64(o.Replicas), "MEM"))
-	d.Storage = strings.ToLower(addUnit(o.Storage*float64(o.Replicas), "Storage"))
+	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*float64(o.Replicas), ""))
+	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*float64(o.Replicas), "g"))
+	d.Storage = strings.ToLower(addUnit(o.Storage*float64(o.Replicas), "g"))
 	return d
-}
-
-func (r Service) round() Service {
-	cpuRound := ResourceRange{r.Resources.Requests.CPU, r.Resources.Limits.CPU}.round()
-	memRound := ResourceRange{r.Resources.Requests.MEM, r.Resources.Limits.MEM}.round()
-	ephRound := ResourceRange{r.Resources.Requests.EPH, r.Resources.Limits.EPH}.round()
-	r.Resources.Requests.CPU = cpuRound.Request
-	r.Resources.Limits.CPU = cpuRound.Limit
-	r.Resources.Requests.MEM = memRound.Request
-	r.Resources.Limits.MEM = memRound.Limit
-	r.Resources.Requests.EPH = ephRound.Request
-	r.Resources.Limits.EPH = ephRound.Limit
-	return r
 }
 
 type ServiceScale struct {
@@ -451,7 +425,6 @@ func (e *Estimate) Result() []byte {
 	for _, service := range names {
 		ref := e.Services[service]
 		def := defaults[service][e.DeploymentType]
-		ref = ref.round()
 		plus := ""
 		serviceName := service
 		replicas := "n/a"
@@ -466,13 +439,15 @@ func (e *Estimate) Result() []byte {
 			if e.DeploymentType == "docker-compose" {
 				serviceName = ref.NameInDocker
 				replicas = fmt.Sprint("1", plus)
+				cpuRequest = "-"
 				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU*float64(ref.Replicas), plus)
+				memoryGBRequest = "-"
 				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM*float64(ref.Replicas), "g", plus)
 				if ref.Storage > 0 {
 					pvc = fmt.Sprint(ref.Storage, "G", plus, "ꜝ")
 				}
 				if ref.Resources.Limits.EPH > 0 {
-					pvc = fmt.Sprint(ref.Resources.Limits.EPH*float64(ref.Replicas), "G", plus, "ꜝ")
+					pvc = fmt.Sprint(ref.Resources.Limits.EPH, "G", plus, "ꜝ")
 				}
 			}
 			if e.DeploymentType == "kubernetes" {
@@ -497,22 +472,13 @@ func (e *Estimate) Result() []byte {
 					eph = fmt.Sprint(ref.Resources.Requests.EPHS, "/", ref.Resources.Limits.EPHS, plus, "ꜝ")
 				}
 			}
-
 			if ref.Resources.Limits.CPU != def.Resources.Limits.CPU {
 				cpuLimit += "ꜝ"
 			}
-
 			if ref.Resources.Limits.MEM != def.Resources.Limits.MEM {
 				memoryGBLimit += "ꜝ"
 			}
-
 		}
-
-		if e.DeploymentType == "docker-compose" {
-			cpuRequest = "-"
-			memoryGBRequest = "-"
-		}
-
 		fmt.Fprintf(
 			&buf,
 			"| %v | %v | %v | %v | %v | %v | %v | %v |\n",
