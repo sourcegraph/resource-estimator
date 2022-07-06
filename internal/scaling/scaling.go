@@ -376,7 +376,7 @@ func (e *Estimate) Calculate() *Estimate {
 	return e
 }
 
-func (e *Estimate) Result() []byte {
+func (e *Estimate) MarkdownExport() []byte {
 	var buf bytes.Buffer
 	// Summary of the output
 	fmt.Fprintf(&buf, "### Estimate summary\n")

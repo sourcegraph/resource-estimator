@@ -44,7 +44,7 @@ func TestEstimate(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			got := string(tc.Estimate.Calculate().Result())
+			got := string(tc.Estimate.Calculate().MarkdownExport())
 			autogold.Equal(t, got)
 		})
 	}
@@ -59,7 +59,7 @@ func TestInvariants(t *testing.T) {
 
 		if e.Services["zoekt-webserver"].Replicas != e.Services["zoekt-indexserver"].Replicas {
 			t.Log("zoekt-webserver replicas != zoekt-indexserver replicas but they live in the same pod")
-			t.Log(string(e.Result()))
+			t.Log(string(e.MarkdownExport()))
 			return false
 		}
 

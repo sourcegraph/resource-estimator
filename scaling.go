@@ -174,7 +174,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		CodeInsight:      p.codeinsightEabled,
 	}).Calculate()
 
-	markdownContent := estimate.Result()
+	markdownContent := estimate.MarkdownExport()
 	helmContent := estimate.HelmExport()
 	dockerContent := estimate.DockerExport()
 
