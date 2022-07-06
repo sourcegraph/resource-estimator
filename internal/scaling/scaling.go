@@ -124,10 +124,10 @@ func (r Service) join(o Service) Service {
 		r.Resources.Limits.MEMS = addUnit(o.Resources.Limits.MEM, "MEM")
 	}
 	if o.Resources.Limits.EPH > 0 && (ResourceRange{r.Resources.Requests.EPH, r.Resources.Limits.EPH}) == (ResourceRange{}) {
-		r.Resources.Requests.EPH = math.Trunc((o.Resources.Limits.EPH - 2*float64(o.Replicas)) / float64(o.Replicas))
-		r.Resources.Limits.EPH = math.Trunc(o.Resources.Limits.EPH / float64(o.Replicas))
+		r.Resources.Requests.EPH = o.Resources.Requests.EPH / float64(r.Replicas)
+		r.Resources.Limits.EPH = o.Resources.Limits.EPH / float64(r.Replicas)
 		r.Resources.Requests.EPHS = addUnit(r.Resources.Requests.EPH, "EPH")
-		r.Resources.Limits.EPHS = addUnit(r.Resources.Limits.EPH, "EPH")
+		r.Resources.Limits.EPHS = addUnit(math.Round(r.Resources.Limits.EPH), "EPH")
 	}
 	if o.Storage > 0 {
 		r.Storage = o.Storage
@@ -336,10 +336,6 @@ func (e *Estimate) Calculate() *Estimate {
 			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor)
 		case "indexedSearchIndexer":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor * k8sFactor)
-		case "searcher":
-			v.Resources.Limits.EPH = float64(e.AverageRepositories / 100)
-		case "symbols":
-			v.Resources.Limits.EPH = float64(e.LargestRepoSize * 120 / 100)
 		}
 		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
 		e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(e.Services[ref.ServiceName])

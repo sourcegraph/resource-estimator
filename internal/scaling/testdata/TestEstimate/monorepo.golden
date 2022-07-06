@@ -24,8 +24,8 @@
 | minio | 1 | - | 1 | - | 0.5g | - | 1Gꜝ |
 | pgsql | 1 | - | 4 | - | 4g | - | - |
 | precise-code-intel-worker | 1 | - | 2 | - | 4g | - | - |
-| searcher-0 | 1 | - | 2 | - | 2g | - | - |
-| symbols-0 | 1 | - | 2 | - | 3gꜝ | - | 2Gꜝ |
+| searcher-0 | 1 | - | 2 | - | 2g | - | 26Gꜝ |
+| symbols-0 | 1 | - | 2 | - | 3gꜝ | - | 3Gꜝ |
 | syntect-server | 1 | - | 4 | - | 6g | - | - |
 | worker | 1 | - | 2ꜝ | - | 4g | - | - |
 

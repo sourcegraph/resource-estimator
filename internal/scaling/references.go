@@ -88,9 +88,7 @@ var References = []ServiceScale{
 		DockerServiceName: "searcher-0",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // estimate
-			{Replicas: 6, Value: 25000},                        // existing deployment: #4 & 12
-			{Replicas: 4, Value: 14000},                        // existing deployment: #51
+			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
 			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
 		},
 	},
@@ -101,20 +99,10 @@ var References = []ServiceScale{
 		DockerServiceName: "searcher-0",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4}, Limits: Resource{CPU: 6, MEM: 8}}, Value: AverageRepositoriesRange.Max},   // estimate
-			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4}, Limits: Resource{CPU: 6, MEM: 8}}, Value: 25000},                          // existing deployment: #4
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 4000},                          // existing deployment: #43
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 2}}, Value: AverageRepositoriesRange.Min}, // default
-		},
-	},
-	{
-		ServiceName:       "searcher",
-		DockerServiceName: "searcher-0",
-		ScalingFactor:     ByAverageRepositories,
-		ReferencePoints: []Service{
-			{Resources: Resources{Requests: Resource{EPH: 25 * 19}, Limits: Resource{EPH: 26 * 19}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood - 4replica with 120Gi to serve 50k+ repos
-			{Resources: Resources{Requests: Resource{EPH: 25}, Limits: Resource{EPH: 26}}, Value: 4000},                                   // existing deployment: #43
-			{Resources: Resources{Requests: Resource{EPH: 25}, Limits: Resource{EPH: 26}}, Value: AverageRepositoriesRange.Min},           // default
+			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4, EPH: 440}, Limits: Resource{CPU: 6, MEM: 8, EPH: 480}}, Value: AverageRepositoriesRange.Max}, // estimate. eph based on dogfood
+			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4, EPH: 220}, Limits: Resource{CPU: 6, MEM: 8, EPH: 240}}, Value: 25000},                        // existing deployment: #4
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2, EPH: 25}, Limits: Resource{CPU: 2, MEM: 4, EPH: 26}}, Value: 4000},                          // existing deployment: #43
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 25}, Limits: Resource{CPU: 2, MEM: 2, EPH: 26}}, Value: AverageRepositoriesRange.Min}, // default
 		},
 	},
 
@@ -137,9 +125,22 @@ var References = []ServiceScale{
 		ScalingFactor:     ByLargeMonorepos,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: LargeMonoreposRange.Max},  // estimate
-			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4},                         // estimate
+			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4},                         // estimate
 			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 2},                        // existing deployment: #43
 			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 2}}, Value: LargeMonoreposRange.Min}, // default
+		},
+	},
+	{
+		ServiceName:       "symbols",
+		DockerServiceName: "symbols-0",
+		ScalingFactor:     ByLargestRepoSize,
+		ReferencePoints: []Service{
+			{Resources: Resources{Requests: Resource{EPH: 5900}, Limits: Resource{EPH: 6000}}, Value: LargestRepoSizeRange.Max}, // calculation
+			{Resources: Resources{Requests: Resource{EPH: 110}, Limits: Resource{EPH: 120}}, Value: 100},                        // calculation
+			{Resources: Resources{Requests: Resource{EPH: 50}, Limits: Resource{EPH: 60}}, Value: 50},                           // calculation
+			{Resources: Resources{Requests: Resource{EPH: 5}, Limits: Resource{EPH: 6}}, Value: 5},                              // calculation
+			{Resources: Resources{Requests: Resource{EPH: 2}, Limits: Resource{EPH: 3}}, Value: 2},                              // calculation
+			{Resources: Resources{Requests: Resource{EPH: 1}, Limits: Resource{EPH: 2}}, Value: LargestRepoSizeRange.Min},       // bare minimum
 		},
 	},
 
