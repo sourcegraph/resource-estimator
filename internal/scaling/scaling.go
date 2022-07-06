@@ -27,12 +27,11 @@ type Service struct {
 	// Value corresponding to the scaling factor type (users, repositories, large monorepos, etc.)
 	Value float64 `json:"-"`
 	// Optional values indicating that at the specified Value, these service properties are required.
-	Replicas     int       `json:"replicaCount,omitempty"`
-	Resources    Resources `json:"resources,omitempty"`
-	Storage      float64   `json:"-"`
-	PVC          string    `json:"storageSize,omitempty"`
-	NameInDocker string    `json:"-"`
-	NameInK8s    string    `json:"-"`
+	Replicas                                int       `json:"replicaCount,omitempty"`
+	Resources                               Resources `json:"resources,omitempty"`
+	Storage                                 float64   `json:"-"`
+	PVC                                     string    `json:"storageSize,omitempty"`
+	NameInDocker, NameInK8s, PodName, Label string    `json:"-"`
 	// ContactSupport, when true, indicates that for the given value support should be contacted.
 	ContactSupport bool `json:"-"`
 }
@@ -41,12 +40,10 @@ type Resources struct {
 	Requests Resource `json:"requests,omitempty"`
 }
 type Resource struct {
-	CPU  float64 `json:"-"`
-	MEM  float64 `json:"-"`
-	EPH  float64 `json:"-"`
-	CPUS string  `json:"cpu,omitempty"`
-	MEMS string  `json:"memory,omitempty"`
-	EPHS string  `json:"ephemeral-storage,omitempty"`
+	CPU, MEM, EPH float64 `json:"-"`
+	CPUS          string  `json:"cpu,omitempty"`
+	MEMS          string  `json:"memory,omitempty"`
+	EPHS          string  `json:"ephemeral-storage,omitempty"`
 }
 type DockerServices struct {
 	Version  string                     `json:"version,string"`
@@ -94,7 +91,9 @@ func addUnit(f float64, t string) string {
 
 func (r Service) join(o Service) Service {
 	r.Value = 0
+	r.Label = o.Label
 	r.NameInDocker = o.NameInDocker
+	r.PodName = o.PodName
 	if r.Replicas == 0 {
 		r.Replicas = o.Replicas
 	}
@@ -113,8 +112,8 @@ func (r Service) join(o Service) Service {
 	if o.Resources.Limits.EPH > 0 && r.Resources.Requests.EPH == 0 && r.Resources.Limits.EPH == 0 {
 		r.Resources.Requests.EPH = resourceRound(o.Resources.Requests.EPH)
 		r.Resources.Limits.EPH = resourceRound(o.Resources.Limits.EPH)
-		r.Resources.Requests.EPHS = addUnit(resourceRound(o.Resources.Requests.EPH/float64(r.Replicas)), "G")
-		r.Resources.Limits.EPHS = addUnit(resourceRound(o.Resources.Limits.EPH/float64(r.Replicas)), "G")
+		r.Resources.Requests.EPHS = addUnit(resourceRound(math.Floor(r.Resources.Requests.EPH/float64(r.Replicas))), "G")
+		r.Resources.Limits.EPHS = addUnit(resourceRound(r.Resources.Limits.EPH/float64(r.Replicas)), "G")
 	}
 	if o.Storage > 0 {
 		r.Storage = resourceRound(o.Storage)
@@ -132,10 +131,9 @@ func (d DockerResources) join(o Service) DockerResources {
 }
 
 type ServiceScale struct {
-	ServiceName       string
-	DockerServiceName string
-	ScalingFactor     Factor
-	ReferencePoints   []Service
+	ServiceName, ServiceLabel, DockerServiceName, PodName string
+	ScalingFactor                                         Factor
+	ReferencePoints                                       []Service
 }
 
 type Range struct {
@@ -171,20 +169,21 @@ func init() {
 	}
 }
 
+// Find the reference point that matches the input value
 func interpolateReferencePoints(refs []Service, value float64) Service {
 	// Find a reference point below the value (a) and above the value (b).
 	var (
 		a, b  Service
 		found bool
 	)
-	for i, ref := range refs {
-		if ref.Value >= value {
+	for i := range refs {
+		if refs[i].Value >= value {
 			if i > 0 {
 				a = refs[i-1]
 			} else {
 				a = refs[i]
 			}
-			b = ref
+			b = refs[i]
 			found = true
 			break
 		}
@@ -195,7 +194,6 @@ func interpolateReferencePoints(refs []Service, value float64) Service {
 		ref.ContactSupport = true
 		return ref
 	}
-
 	valueRange := b.Value - a.Value
 	replicasRange := float64(b.Replicas - a.Replicas)
 	scalingFactor := (value - a.Value) / orOne(valueRange)
@@ -206,8 +204,11 @@ func interpolateReferencePoints(refs []Service, value float64) Service {
 	memValues := ResourceRange{Request: a.Resources.Requests.MEM, Limit: a.Resources.Limits.MEM}.Add(memoryGBRange.MulScalar(scalingFactor))
 	ephValues := ResourceRange{Request: a.Resources.Requests.EPH, Limit: a.Resources.Limits.EPH}.Add(ephRange.MulScalar(scalingFactor))
 	return Service{
-		Value:    a.Value * scalingFactor,
-		Replicas: a.Replicas + (int(math.Round(replicasRange * scalingFactor))),
+		NameInDocker: a.NameInDocker,
+		Label:        a.Label,
+		PodName:      a.PodName,
+		Value:        a.Value * scalingFactor,
+		Replicas:     a.Replicas + (int(math.Round(replicasRange * scalingFactor))),
 		Resources: Resources{
 			Requests: Resource{
 				CPU: cpuValues.Request,
@@ -268,12 +269,6 @@ func (e *Estimate) Calculate() *Estimate {
 	e.DockerServices = make(map[string]DockerResources)
 	for _, ref := range References {
 		var value float64
-		var dockerFactor = 1
-		var k8sFactor = 0
-		if e.DeploymentType == "docker-compose" {
-			dockerFactor = 2
-			k8sFactor = 1
-		}
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
 			value = float64(e.EngagedUsers)
@@ -299,19 +294,28 @@ func (e *Estimate) Calculate() *Estimate {
 		if v.ContactSupport {
 			e.ContactSupport = true
 		}
+		v.Label = ref.ServiceLabel
+		v.PodName = ref.PodName
 		v.NameInDocker = ref.DockerServiceName
 		// calculate storage size
+		var dockerFactor = 1
+		var k8sFactor = 0
+		if e.DeploymentType == "docker-compose" {
+			dockerFactor = 2
+			k8sFactor = 1
+		}
 		switch ref.ServiceName {
 		case "gitserver":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100)
 		case "minio":
 			v.Storage = float64(e.LargestIndexSize)
 		case "indexedSearch":
-			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor)
+			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor) // times 2 for docker compose deployment
 		case "indexedSearchIndexer":
-			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor * k8sFactor)
+			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor * k8sFactor) // zero for k8s deployment
 		}
 		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
+		// create struct for docker-compose yaml file
 		e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(e.Services[ref.ServiceName])
 	}
 	if e.DeploymentType == "type" {
@@ -332,13 +336,12 @@ func (e *Estimate) Calculate() *Estimate {
 			e.Services[name] = v
 		}
 	}
-
 	var (
 		sumCPURequests, sumCPULimits, sumMemoryGBRequests, sumMemoryGBLimits float64
 		largestCPULimit, largestMemoryGBLimit                                float64
 		visited                                                              = map[string]struct{}{}
 	)
-	countRef := func(service string, ref Service) {
+	countRef := func(service string, ref *Service) {
 		if _, ok := visited[service]; ok {
 			return
 		}
@@ -354,11 +357,13 @@ func (e *Estimate) Calculate() *Estimate {
 			largestMemoryGBLimit = v
 		}
 	}
-	for service, ref := range e.Services {
-		countRef(service, ref)
+	for service := range e.Services {
+		r := e.Services[service]
+		countRef(service, &r)
 	}
-	for service, ref := range defaults {
-		countRef(service, ref[e.DeploymentType])
+	for service := range defaults {
+		r := defaults[service][e.DeploymentType]
+		countRef(service, &r)
 	}
 	totalCPU := sumCPURequests + ((sumCPULimits - sumCPURequests) * 0.5)
 	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits - sumMemoryGBRequests) * 0.5)
@@ -426,7 +431,7 @@ func (e *Estimate) Result() []byte {
 		ref := e.Services[service]
 		def := defaults[service][e.DeploymentType]
 		plus := ""
-		serviceName := service
+		serviceName := fmt.Sprint(ref.Label, "</br>(Pod: ", ref.PodName, ")")
 		replicas := "n/a"
 		cpuRequest := "n/a"
 		cpuLimit := "n/a"
