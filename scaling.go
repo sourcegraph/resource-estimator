@@ -175,8 +175,8 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 	}).Calculate()
 
 	markdownContent := estimate.Result()
-
 	helmContent := estimate.HelmExport()
+	dockerContent := estimate.DockerExport()
 
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
@@ -184,20 +184,38 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		&markdown{Content: markdownContent},
 		elem.Heading3(vecty.Text("Export result")),
 		elem.Details(
-			elem.Summary(vecty.Text("Export as Helm")),
+			elem.Summary(vecty.Text("Export as Helm Override File")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),
-				vecty.Text(string(helmContent)),
+				vecty.Text(helmContent),
 			),
 			elem.Paragraph(
-				elem.Strong(vecty.Text("Helm Override File -- ")),
+				elem.Strong(vecty.Text("Click to Download: ")),
 				elem.Anchor(
 					vecty.Markup(
 						vecty.Markup(prop.Href("data:text/csv;charset=utf-8,"+helmContent)),
 						vecty.Property("download", "override.yaml"),
 					),
-					vecty.Text("Click to download"),
+					vecty.Text("override.yaml"),
+				),
+			),
+		),
+		elem.Details(
+			elem.Summary(vecty.Text("Export as Docker Compose Override File")),
+			elem.Break(),
+			elem.TextArea(
+				vecty.Markup(vecty.Class("copy-as-markdown")),
+				vecty.Text(dockerContent),
+			),
+			elem.Paragraph(
+				elem.Strong(vecty.Text("Click to Download: ")),
+				elem.Anchor(
+					vecty.Markup(
+						vecty.Markup(prop.Href("data:text/csv;charset=utf-8,"+dockerContent)),
+						vecty.Property("download", "docker-compose.override.yaml"),
+					),
+					vecty.Text("docker-compose.override.yaml"),
 				),
 			),
 		),

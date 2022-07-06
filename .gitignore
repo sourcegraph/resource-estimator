@@ -1,3 +1,4 @@
+internal/scaling/scaling.go
 *.wasm
 # Binaries for programs and plugins
 *.exe

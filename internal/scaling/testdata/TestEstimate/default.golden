@@ -17,17 +17,17 @@
 
 | Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | Ephemeral Requests/Limits | Storage |
 |-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
-| frontend | 2ꜝ | - | 4 | - | 8G | - | - |
-| gitserver | 1 | - | 4 | - | 8G | - | 36Giꜝ |
-| zoekt-indexserver | 1 | - | 8 | - | 8Gꜝ | - | 18Giꜝ |
-| zoekt-webserver | 1 | - | 8 | - | 9Gꜝ | - | - |
-| minio | 1 | - | 1 | - | 500M | - | 1Giꜝ |
-| pgsql | 1 | - | 4 | - | 4G | - | - |
-| precise-code-intel | 1 | - | 2 | - | 4G | - | - |
-| searcher | 1 | - | 2 | - | 2G | - | 3Gꜝ |
-| symbols | 1 | - | 2 | - | 2Gꜝ | - | 2Gꜝ |
-| syntect-server | 1 | - | 4 | - | 6G | - | - |
-| worker | 1 | - | 2ꜝ | - | 4G | - | - |
+| sourcegraph-frontend-0 | 1 | - | 8 | - | 16g | - | - |
+| gitserver-0 | 1 | - | 4 | - | 8g | - | 36Gꜝ |
+| zoekt-indexserver-0 | 1 | - | 8 | - | 8gꜝ | - | 9Gꜝ |
+| zoekt-webserver-0 | 1 | - | 8 | - | 10gꜝ | - | 9Gꜝ |
+| minio | 1 | - | 1 | - | 0.5g | - | 1Gꜝ |
+| pgsql | 1 | - | 4 | - | 4g | - | - |
+| precise-code-intel-worker | 1 | - | 2 | - | 4g | - | - |
+| searcher-0 | 1 | - | 2 | - | 2g | - | 3Gꜝ |
+| symbols-0 | 1 | - | 2 | - | 2gꜝ | - | 2Gꜝ |
+| syntect-server | 1 | - | 4 | - | 6g | - | - |
+| worker | 1 | - | 2ꜝ | - | 4g | - | - |
 
 > ꜝ<small> This is a non-default value.</small>
 

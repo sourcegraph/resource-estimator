@@ -7,8 +7,9 @@ var References = []ServiceScale{
 	// Frontend scales based on the number of engaged users.
 	// Add 2000 users to user count if code-insight is enabled
 	{
-		ServiceName:   "frontend",
-		ScalingFactor: ByEngagedUsers, // UsersRange = {5, 10000}
+		ServiceName:       "frontend",
+		DockerServiceName: "sourcegraph-frontend-0",
+		ScalingFactor:     ByEngagedUsers, // UsersRange = {5, 10000}
 		ReferencePoints: []Service{
 			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: UsersRange.Max}, // estimate
 			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 5000},           // estimate
@@ -20,8 +21,9 @@ var References = []ServiceScale{
 
 	// Gitserver scales based on the total size of all repoes and number of average repositories.
 	{
-		ServiceName:   "gitserver",
-		ScalingFactor: ByUserRepoSumRatio,
+		ServiceName:       "gitserver",
+		DockerServiceName: "gitserver-0",
+		ScalingFactor:     ByUserRepoSumRatio,
 		ReferencePoints: []Service{
 			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: UserRepoSumRatioRange.Max}, // estimate
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: 150},                       // estimate
@@ -36,8 +38,9 @@ var References = []ServiceScale{
 	},
 
 	{
-		ServiceName:   "minio",
-		ScalingFactor: ByLargestIndexSize,
+		ServiceName:       "minio",
+		DockerServiceName: "minio",
+		ScalingFactor:     ByLargestIndexSize,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Max, Value: LargestIndexSizeRange.Max}, // calculation
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Min, Value: LargestIndexSizeRange.Min}, // bare minimum
@@ -46,8 +49,9 @@ var References = []ServiceScale{
 
 	// Memory usage depends on the number of active users and service-connections
 	{
-		ServiceName:   "pgsql",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "pgsql",
+		DockerServiceName: "pgsql",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 7, MEM: 32}, Limits: Resource{CPU: 7, MEM: 32}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 16}, Limits: Resource{CPU: 4, MEM: 16}}, Value: 25000},                        // existing deployment: #4
@@ -61,8 +65,9 @@ var References = []ServiceScale{
 	// Scale horizontally to process a higher throughput of indexes.
 	// calculation: ~2 times of the size of the largest index
 	{
-		ServiceName:   "preciseCodeIntel",
-		ScalingFactor: ByLargestIndexSize,
+		ServiceName:       "preciseCodeIntel",
+		DockerServiceName: "precise-code-intel-worker",
+		ScalingFactor:     ByLargestIndexSize,
 		ReferencePoints: []Service{
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 2, MEM: 25}, Limits: Resource{CPU: 4, MEM: 50}}, Value: LargestIndexSizeRange.Max}, // calculation
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 2, MEM: 20}, Limits: Resource{CPU: 4, MEM: 41}}, Value: 81},                        // calculation
@@ -79,8 +84,9 @@ var References = []ServiceScale{
 
 	// Searcher replicas scale based the number of concurrent unidexed queries & number concurrent of structural searches
 	{
-		ServiceName:   "searcher",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "searcher",
+		DockerServiceName: "searcher-0",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 8, Value: AverageRepositoriesRange.Max}, // estimate
 			{Replicas: 6, Value: 25000},                        // existing deployment: #4 & 12
@@ -91,8 +97,9 @@ var References = []ServiceScale{
 	// Searcher is IO and CPU bound. It fetches archives from gitserver and searches them with regexp.
 	// Memory scales based on the size of repositories (i.e. when large monorepos are in the picture).
 	{
-		ServiceName:   "searcher",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "searcher",
+		DockerServiceName: "searcher-0",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4}, Limits: Resource{CPU: 6, MEM: 8}}, Value: AverageRepositoriesRange.Max},   // estimate
 			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4}, Limits: Resource{CPU: 6, MEM: 8}}, Value: 25000},                          // existing deployment: #4
@@ -101,8 +108,9 @@ var References = []ServiceScale{
 		},
 	},
 	{
-		ServiceName:   "searcher",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "searcher",
+		DockerServiceName: "searcher-0",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{EPH: 25 * 19}, Limits: Resource{EPH: 26 * 19}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood - 4replica with 120Gi to serve 50k+ repos
 			{Resources: Resources{Requests: Resource{EPH: 25}, Limits: Resource{EPH: 26}}, Value: 4000},                                   // existing deployment: #43
@@ -113,8 +121,9 @@ var References = []ServiceScale{
 	// Symbols replicas scale based on the number of average repositories, and its resources scale
 	// based on the size of repositories (i.e. when large monorepos are in the picture).
 	{
-		ServiceName:   "symbols",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "symbols",
+		DockerServiceName: "symbols-0",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // estimate
 			{Replicas: 3, Value: 25000},                        // estimate
@@ -123,8 +132,9 @@ var References = []ServiceScale{
 		},
 	},
 	{
-		ServiceName:   "symbols",
-		ScalingFactor: ByLargeMonorepos,
+		ServiceName:       "symbols",
+		DockerServiceName: "symbols-0",
+		ScalingFactor:     ByLargeMonorepos,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: LargeMonoreposRange.Max},  // estimate
 			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4},                         // estimate
@@ -140,8 +150,9 @@ var References = []ServiceScale{
 	// These can cause runaway CPU usage (for 1 core per hang).
 	// syntect-server should normally kill such processes and restart them if that happens.
 	{
-		ServiceName:   "syntectServer",
-		ScalingFactor: ByEngagedUsers,
+		ServiceName:       "syntectServer",
+		DockerServiceName: "syntect-server",
+		ScalingFactor:     ByEngagedUsers,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 6}, Limits: Resource{CPU: 8, MEM: 12}}, Value: UsersRange.Max}, // estimate
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 4, MEM: 6}}, Value: 5000},           // existing deployment: average between 27 and
@@ -151,8 +162,9 @@ var References = []ServiceScale{
 
 	// worker is used by different services, and mostly scale based on the number of average repositories to execute jobs
 	{
-		ServiceName:   "worker",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "worker",
+		DockerServiceName: "worker",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: AverageRepositoriesRange.Max}, // estimate
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 25000},                         // estimate
@@ -162,8 +174,9 @@ var References = []ServiceScale{
 
 	// zoekt-indexserver memory usage scales based on whether it must index large monorepos
 	{
-		ServiceName:   "indexedSearch",
-		ScalingFactor: ByLargeMonorepos,
+		ServiceName:       "indexedSearch",
+		DockerServiceName: "zoekt-indexserver-0",
+		ScalingFactor:     ByLargeMonorepos,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 16}}, Value: LargeMonoreposRange.Max}, // estimate
 			{Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 16}}, Value: 2},                       // estimate
@@ -173,8 +186,9 @@ var References = []ServiceScale{
 	// CPU usage and replicas scale based on the number of average repos it must index as it indexes one repo at a time
 	// Set replica number to 0 as it will be synced with the replica number for webserver
 	{
-		ServiceName:   "indexedSearch",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "indexedSearch",
+		DockerServiceName: "zoekt-indexserver-0",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: AverageRepositoriesRange.Max}, // estimate: 4 replics to serve 50k repos so 8CPU limit per replica should be enough
 			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4}, Limits: Resource{CPU: 8}}, Value: 14000},                        // existing deployment: #26 - 16 CPU / 2 replicas = 8
@@ -187,8 +201,9 @@ var References = []ServiceScale{
 	// zoekt-webserver memory usage and replicas scale based on how many average repositories it is
 	// serving (roughly 2/3 the size of the actual repos is the memory usage).
 	{
-		ServiceName:   "indexedSearchIndexer",
-		ScalingFactor: ByAverageRepositories,
+		ServiceName:       "indexedSearchIndexer",
+		DockerServiceName: "zoekt-webserver-0",
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 4, Resources: Resources{Requests: Resource{MEM: 25}, Limits: Resource{MEM: 50}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
 			{Replicas: 2, Resources: Resources{Requests: Resource{MEM: 8}, Limits: Resource{MEM: 16}}, Value: 14000},                         // existing deployment: #26
@@ -199,8 +214,9 @@ var References = []ServiceScale{
 	// CPU usage is based on the number of users it serves (and the size of the index, but we do not account for
 	// that here and instead assume a correlation between # users and # repos which is generally true.)
 	{
-		ServiceName:   "indexedSearchIndexer",
-		ScalingFactor: ByEngagedUsers,
+		ServiceName:       "indexedSearchIndexer",
+		DockerServiceName: "zoekt-webserver-0",
+		ScalingFactor:     ByEngagedUsers,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 8}, Limits: Resource{CPU: 16}}, Value: UsersRange.Max}, // estimate
 			{Resources: Resources{Requests: Resource{CPU: 6}, Limits: Resource{CPU: 12}}, Value: 15000},          // existing deployment: #51
@@ -214,7 +230,6 @@ var References = []ServiceScale{
 // recommend the same number of replicas.
 var pods = map[string][]string{
 	"indexed-search": {"indexedSearch", "indexedSearchIndexer"},
-	// "redis":          {"redis-cache", "redis-store"},
 }
 
 var defaults = map[string]map[string]Service{
@@ -268,10 +283,10 @@ var defaults = map[string]map[string]Service{
 	},
 	"indexedSearchIndexer": { // zoekt-webserver
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 16}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 16}}, Storage: 200},
 	},
 	"indexedSearch": { // zoekt-indexserver
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 50}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 50}}, Storage: 200},
 	},
 }
