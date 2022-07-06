@@ -256,7 +256,7 @@ type Estimate struct {
 	// the difference in limits. The thinking is that requests are often far too low as they do not
 	// describe peak load of the service, and limits are often far too high
 	// and the sweet spot is in the middle.
-	TotalCPU, TotalMemoryGB int
+	TotalCPU, TotalMemoryGB, TotalStorageSize int
 
 	TotalSharedCPU, TotalSharedMemoryGB int
 }
@@ -337,15 +337,16 @@ func (e *Estimate) Calculate() *Estimate {
 		}
 	}
 	var (
-		sumCPURequests, sumCPULimits, sumMemoryGBRequests, sumMemoryGBLimits float64
-		largestCPULimit, largestMemoryGBLimit                                float64
-		visited                                                              = map[string]struct{}{}
+		sumCPURequests, sumCPULimits, sumMemoryGBRequests, sumMemoryGBLimits, sumStorageSize float64
+		largestCPULimit, largestMemoryGBLimit                                                float64
+		visited                                                                              = map[string]struct{}{}
 	)
 	countRef := func(service string, ref *Service) {
 		if _, ok := visited[service]; ok {
 			return
 		}
 		visited[service] = struct{}{}
+		sumStorageSize += ref.Storage
 		sumCPURequests += ref.Resources.Requests.CPU
 		sumCPULimits += ref.Resources.Limits.CPU
 		sumMemoryGBRequests += ref.Resources.Requests.MEM
@@ -367,6 +368,7 @@ func (e *Estimate) Calculate() *Estimate {
 	}
 	totalCPU := sumCPURequests + ((sumCPULimits - sumCPURequests) * 0.5)
 	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits - sumMemoryGBRequests) * 0.5)
+	e.TotalStorageSize = int(math.Ceil(sumStorageSize))
 	e.TotalCPU = int(math.Ceil(totalCPU))
 	e.TotalMemoryGB = int(math.Ceil(totalMemoryGB))
 	e.TotalSharedCPU = int(math.Ceil(largestCPULimit))
@@ -382,11 +384,14 @@ func (e *Estimate) Result() []byte {
 	if !e.ContactSupport {
 		fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
 		fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
+		fmt.Fprintf(&buf, "* **Estimated total storage:** %vg\n", e.TotalStorageSize)
 	} else {
 		fmt.Fprintf(&buf, "* **Estimated total CPUs:** not available\n")
 		fmt.Fprintf(&buf, "* **Estimated total memory:** not available\n")
+		fmt.Fprintf(&buf, "* **Estimated total storage:** not available\n")
 	}
-	fmt.Fprintf(&buf, "* **Note:** Use the default values for services or values not listed below .\n")
+	fmt.Fprintf(&buf, "\n**Note:** The total estimated numbers shown above include default values for other services.\n")
+	fmt.Fprintf(&buf, "Use the default values for services not listed below.\n")
 	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
 		if e.DeploymentType == "docker-compose" {
 			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")

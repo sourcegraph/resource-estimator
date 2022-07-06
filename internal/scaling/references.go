@@ -266,59 +266,92 @@ var pods = map[string][]string{
 }
 
 var defaults = map[string]map[string]Service{
+	"cadvisor": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .15, MEM: .2}, Limits: Resource{CPU: .3, MEM: .2}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}},
+	},
+	"codeinsights-db": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}, Storage: 128},
+	},
+	"codeintel-db": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 128},
+	},
 	"frontend": {
-		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}},
+		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2, EPH: 4}, Limits: Resource{CPU: 2, MEM: 4, EPH: 8}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 128},
+	},
+	"frontend-internal": {
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 128},
+	},
+	"github-proxy": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .1, MEM: .25}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 200},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}, Storage: 1},
 	},
 	"gitserver": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Storage: 200},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 200},
+	},
+	"grafana": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .1, MEM: .512}, Limits: Resource{CPU: 1, MEM: .512}}, Storage: 2},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}, Storage: 2},
+	},
+	"jaeger": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 1, MEM: 1}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: .5, MEM: .512}}, Storage: 128},
 	},
 	"pgsql": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 128},
 	},
 	"preciseCodeIntel": {
 		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}},
 	},
+	"prometheus": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 6}, Limits: Resource{CPU: 2, MEM: 6}}, Storage: 200},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 200},
+	},
 	"minio": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: 100},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: .5}}, Storage: 100},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}, Storage: 128},
 	},
 	"redisCache": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 7, MEM: 7}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}, Storage: 128},
 	},
 	"redisStore": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 7, MEM: 7}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 7}}, Storage: 128},
 	},
 	"repoUpdater": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: 2}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 128},
 	},
 	"searcher": {
 		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 25}, Limits: Resource{CPU: 2, MEM: 2, EPH: 26}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 2, EPH: 128}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 2}}, Storage: 128},
 	},
 	"symbols": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 10}, Limits: Resource{CPU: 2, MEM: 2, EPH: 12}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4, EPH: 128}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}, Storage: 128},
 	},
 	"syntectServer": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 5, MEM: 6}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 6}}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .25, MEM: 2}, Limits: Resource{CPU: 4, MEM: 6}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 6}}}, // no disk
 	},
 	"worker": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 128},
 	},
-	"indexedSearchIndexer": { // zoekt-webserver
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}},
+	// zoekt-webserver
+	"indexedSearchIndexer": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}, Storage: 200},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 16}}, Storage: 200},
 	},
-	"indexedSearch": { // zoekt-indexserver
+	// zoekt-indexserver
+	"indexedSearch": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 50}}, Storage: 200},
 	},
