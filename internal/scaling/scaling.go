@@ -89,7 +89,7 @@ func addUnit(f float64, t string) string {
 	return fmt.Sprintf("%v%v", math.Trunc(f), t)
 }
 
-func (r Service) join(o Service) Service {
+func (r *Service) join(o *Service) {
 	r.Value = 0
 	r.Label = o.Label
 	r.NameInDocker = o.NameInDocker
@@ -120,10 +120,9 @@ func (r Service) join(o Service) Service {
 		r.PVC = addUnit(resourceRound(o.Storage/float64(r.Replicas)), "Gi")
 	}
 	r.ContactSupport = r.ContactSupport || o.ContactSupport
-	return r
 }
 
-func (d DockerResources) join(o Service) DockerResources {
+func (d DockerResources) join(o *Service) DockerResources {
 	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*float64(o.Replicas), ""))
 	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*float64(o.Replicas), "g"))
 	d.Storage = strings.ToLower(addUnit(o.Storage*float64(o.Replicas), "g"))
@@ -314,9 +313,11 @@ func (e *Estimate) Calculate() *Estimate {
 		case "indexedSearchIndexer":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor * k8sFactor) // zero for k8s deployment
 		}
-		e.Services[ref.ServiceName] = e.Services[ref.ServiceName].join(v)
+		r := e.Services[ref.ServiceName]
+		(&r).join(&v)
+		e.Services[ref.ServiceName] = r
 		// create struct for docker-compose yaml file
-		e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(e.Services[ref.ServiceName])
+		e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
 	}
 	if e.DeploymentType == "type" {
 		e.DeploymentType = "kubernetes"
