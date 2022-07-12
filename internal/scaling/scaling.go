@@ -391,8 +391,7 @@ func (e *Estimate) MarkdownExport() []byte {
 		fmt.Fprintf(&buf, "* **Estimated total memory:** not available\n")
 		fmt.Fprintf(&buf, "* **Estimated total storage:** not available\n")
 	}
-	fmt.Fprintf(&buf, "\n**Note:** The total estimated numbers shown above include default values for other services.\n")
-	fmt.Fprintf(&buf, "Use the default values for services not listed below.\n")
+	fmt.Fprintf(&buf, "\n<small>**Note:** The estimated total includes default values for other services.</small>\n")
 	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
 		if e.DeploymentType == "docker-compose" {
 			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
