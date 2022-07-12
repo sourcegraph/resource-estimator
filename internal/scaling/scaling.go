@@ -234,7 +234,7 @@ func orOne(v float64) float64 {
 type Estimate struct {
 	// inputs
 	DeploymentType   string // calculated if set to "docker-compose"
-	CodeInsight      string // If Code Insight is enabled, add 2000 to user count
+	CodeInsight      string // If Code Insight is enabled, add 1000 to user count
 	EngagementRate   int    // The percentage of users who use Sourcegraph regularly.
 	Repositories     int    // Number of repositories
 	LargeMonorepos   int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
@@ -272,7 +272,7 @@ func (e *Estimate) Calculate() *Estimate {
 		case ByEngagedUsers:
 			value = float64(e.EngagedUsers)
 			if e.CodeInsight == "Enable" {
-				value = float64(e.EngagedUsers + 2000)
+				value = float64(e.EngagedUsers + 1000)
 			}
 		case ByAverageRepositories:
 			value = float64(e.AverageRepositories)
@@ -424,8 +424,8 @@ func (e *Estimate) MarkdownExport() []byte {
 		fmt.Fprintf(&buf, "> **IMPORTANT:** Please [contact support](mailto:support@sourcegraph.com) for the service(s) that marked as not available.\n")
 		fmt.Fprintf(&buf, "\n")
 	}
-	fmt.Fprintf(&buf, "| Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | Ephemeral Requests/Limits | Storage |\n")
-	fmt.Fprintf(&buf, "|-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|\n")
+	fmt.Fprintf(&buf, "| Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | EPH requests | EPH limits | Storage |\n")
+	fmt.Fprintf(&buf, "|-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|\n")
 
 	var names []string
 	for service := range e.Services {
@@ -437,13 +437,14 @@ func (e *Estimate) MarkdownExport() []byte {
 		ref := e.Services[service]
 		def := defaults[service][e.DeploymentType]
 		plus := ""
-		serviceName := fmt.Sprint(ref.Label, "</br>(Pod: ", ref.PodName, ")")
+		serviceName := fmt.Sprint(ref.Label, "</br><small>(pod: ", ref.PodName, ")</small>")
 		replicas := "n/a"
 		cpuRequest := "n/a"
 		cpuLimit := "n/a"
 		memoryGBRequest := "n/a"
 		memoryGBLimit := "n/a"
-		eph := "-"
+		ephRequest := "-"
+		ephLimit := "-"
 		pvc := "-"
 
 		if !ref.ContactSupport {
@@ -454,6 +455,8 @@ func (e *Estimate) MarkdownExport() []byte {
 				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU*float64(ref.Replicas), plus)
 				memoryGBRequest = "-"
 				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM*float64(ref.Replicas), "g", plus)
+				ephRequest = "-"
+				ephLimit = "-"
 				if ref.Storage > 0 {
 					pvc = fmt.Sprint(ref.Storage, "G", plus, "ꜝ")
 				}
@@ -480,7 +483,8 @@ func (e *Estimate) MarkdownExport() []byte {
 					pvc = fmt.Sprint(ref.PVC, plus, "ꜝ")
 				}
 				if ref.Resources.Limits.EPH > 0 {
-					eph = fmt.Sprint(ref.Resources.Requests.EPHS, "/", ref.Resources.Limits.EPHS, plus, "ꜝ")
+					ephRequest = fmt.Sprint(ref.Resources.Requests.EPHS, plus, "ꜝ")
+					ephLimit = fmt.Sprint(ref.Resources.Limits.EPHS, plus, "ꜝ")
 				}
 			}
 			if ref.Resources.Limits.CPU != def.Resources.Limits.CPU {
@@ -492,14 +496,15 @@ func (e *Estimate) MarkdownExport() []byte {
 		}
 		fmt.Fprintf(
 			&buf,
-			"| %v | %v | %v | %v | %v | %v | %v | %v |\n",
+			"| %v | %v | %v | %v | %v | %v | %v | %v | %v |\n",
 			serviceName,
 			replicas,
 			cpuRequest,
 			cpuLimit,
 			memoryGBRequest,
 			memoryGBLimit,
-			eph,
+			ephRequest,
+			ephLimit,
 			pvc,
 		)
 	}

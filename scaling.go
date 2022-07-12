@@ -20,11 +20,11 @@ func main() {
 		deploymentType:    "type",
 		users:             300,
 		engagementRate:    100,
-		repositories:      5000,
-		reposize:          500,
-		largeMonorepos:    5,
+		repositories:      3000,
+		reposize:          100,
+		largeMonorepos:    2,
 		largestRepoSize:   5,
-		largestIndexSize:  3,
+		largestIndexSize:  0,
 		codeinsightEabled: "Enable",
 	})
 	if err != nil {
@@ -184,7 +184,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		&markdown{Content: markdownContent},
 		elem.Heading3(vecty.Text("Export result")),
 		elem.Details(
-			elem.Summary(vecty.Text("Export as Helm Override File")),
+			elem.Summary(vecty.Text("Export as Helm Override File (Beta)")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),
@@ -202,7 +202,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 			),
 		),
 		elem.Details(
-			elem.Summary(vecty.Text("Export as Docker Compose Override File")),
+			elem.Summary(vecty.Text("Export as Docker Compose Override File (Beta)")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),

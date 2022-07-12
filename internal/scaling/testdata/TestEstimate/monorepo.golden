@@ -1,8 +1,8 @@
 `### Estimate summary
 
-* **Estimated total CPUs:** 43
-* **Estimated total memory:** 70g
-* **Estimated total storage:** 1154g
+* **Estimated total CPUs:** 41
+* **Estimated total memory:** 64g
+* **Estimated total storage:** 898g
 
 **Note:** The total estimated numbers shown above include default values for other services.
 Use the default values for services not listed below.
@@ -18,19 +18,21 @@ Use the default values for services not listed below.
   </blockquote></details>
 
 
-| Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | Ephemeral Requests/Limits | Storage |
-|-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
-| sourcegraph-frontend-0 | 1 | - | 8 | - | 16g | - | - |
-| gitserver-0 | 1 | - | 4 | - | 8g | - | 36Gꜝ |
-| zoekt-indexserver-0 | 1 | - | 8 | - | 12gꜝ | - | 9Gꜝ |
-| zoekt-webserver-0 | 1 | - | 8 | - | 8gꜝ | - | 9Gꜝ |
-| minio | 1 | - | 1 | - | 0.5gꜝ | - | 1Gꜝ |
-| pgsql | 1 | - | 4 | - | 4g | - | - |
-| precise-code-intel-worker | 1 | - | 2 | - | 4g | - | - |
-| searcher-0 | 1 | - | 2 | - | 2g | - | 26Gꜝ |
-| symbols-0 | 1 | - | 2 | - | 3gꜝ | - | 3Gꜝ |
-| syntect-server | 1 | - | 4 | - | 6g | - | - |
-| worker | 1 | - | 2ꜝ | - | 4g | - | - |
+| Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | EPH requests | EPH limits | Storage |
+|-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
+| sourcegraph-frontend-0 | 1 | - | 6ꜝ | - | 12gꜝ | - | - | - |
+| gitserver-0 | 1 | - | 4 | - | 8g | - | - | 36Gꜝ |
+| zoekt-indexserver-0 | 1 | - | 8 | - | 12gꜝ | - | - | 9Gꜝ |
+| zoekt-webserver-0 | 1 | - | 5ꜝ | - | 8gꜝ | - | - | 9Gꜝ |
+| minio | 1 | - | 1 | - | 0.5gꜝ | - | - | 1Gꜝ |
+| pgsql | 1 | - | 4 | - | 4g | - | - | - |
+| precise-code-intel-worker | 1 | - | 2 | - | 4g | - | - | - |
+| redis-cache | 1 | - | 1 | - | 1gꜝ | - | - | - |
+| redis-store | 1 | - | 1 | - | 2gꜝ | - | - | - |
+| searcher-0 | 1 | - | 2 | - | 2g | - | - | 2Gꜝ |
+| symbols-0 | 1 | - | 2 | - | 2gꜝ | - | - | 3Gꜝ |
+| syntect-server | 1 | - | 4 | - | 6g | - | - | - |
+| worker | 1 | - | 2ꜝ | - | 4g | - | - | - |
 
 > ꜝ<small> This is a non-default value.</small>
 

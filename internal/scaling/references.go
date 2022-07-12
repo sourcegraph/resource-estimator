@@ -5,7 +5,7 @@ package scaling
 
 var References = []ServiceScale{
 	// Frontend scales based on the number of engaged users.
-	// Add 2000 users to user count if code-insight is enabled
+	// Add 1000 users to user count if code-insight is enabled
 	{
 		ServiceName:       "frontend",
 		ServiceLabel:      "sourcegraph-frontend",
@@ -17,7 +17,7 @@ var References = []ServiceScale{
 			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 5000},           // estimate
 			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 2100},            // existing deployment: #4
 			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 2050},            // existing deployment: #45
-			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: UsersRange.Min},  // default for instance with <2000 users without code-insight
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: UsersRange.Min},  // default
 		},
 	},
 
@@ -33,10 +33,8 @@ var References = []ServiceScale{
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: 150},                       // estimate
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 50},                          // existing deployment: dogfood
 			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 8, MEM: 32}, Limits: Resource{CPU: 8, MEM: 32}}, Value: 30},                          // estimate
-			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 20},                          // estimate
-			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 8, MEM: 32}, Limits: Resource{CPU: 8, MEM: 32}}, Value: 10},                          // estimate
-			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 5},                           // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 2},                           // estimate
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 25}, Limits: Resource{CPU: 4, MEM: 25}}, Value: 20},                          // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 5},                           // estimate
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Value: UserRepoSumRatioRange.Min},     // default for instance with <4000 repos
 		},
 	},
@@ -92,6 +90,29 @@ var References = []ServiceScale{
 		},
 	},
 
+	{
+		ServiceName:       "redisCache",
+		ServiceLabel:      "redis-cache",
+		DockerServiceName: "redis-cache",
+		PodName:           "redis",
+		ScalingFactor:     ByUserRepoSumRatio,
+		ReferencePoints: []Service{
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Value: UserRepoSumRatioRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Value: UserRepoSumRatioRange.Min}, // bare minimum
+		},
+	},
+	{
+		ServiceName:       "redisStore",
+		ServiceLabel:      "redis-store",
+		DockerServiceName: "redis-store",
+		PodName:           "redis",
+		ScalingFactor:     ByEngagedUsers,
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Value: UsersRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Value: UsersRange.Min}, // bare minimum
+		},
+	},
+
 	// Searcher replicas scale based the number of concurrent unidexed queries & number concurrent of structural searches
 	{
 		ServiceName:       "searcher",
@@ -115,8 +136,8 @@ var References = []ServiceScale{
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4, EPH: 440}, Limits: Resource{CPU: 6, MEM: 8, EPH: 480}}, Value: AverageRepositoriesRange.Max}, // estimate. eph based on dogfood
 			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4, EPH: 220}, Limits: Resource{CPU: 6, MEM: 8, EPH: 240}}, Value: 25000},                        // existing deployment: #4
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2, EPH: 25}, Limits: Resource{CPU: 2, MEM: 4, EPH: 26}}, Value: 4000},                          // existing deployment: #43
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 25}, Limits: Resource{CPU: 2, MEM: 2, EPH: 26}}, Value: AverageRepositoriesRange.Min}, // default
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2, EPH: 37}, Limits: Resource{CPU: 2, MEM: 4, EPH: 38}}, Value: 4000},                          // existing deployment: #43
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 2, MEM: 2, EPH: 2}}, Value: AverageRepositoriesRange.Min},   // default
 		},
 	},
 
@@ -140,12 +161,11 @@ var References = []ServiceScale{
 		ServiceLabel:      "symbols",
 		DockerServiceName: "symbols-0",
 		PodName:           "symbols",
-		ScalingFactor:     ByLargeMonorepos,
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: LargeMonoreposRange.Max},  // estimate
-			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4},                         // estimate
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 2},                        // existing deployment: #43
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 2}}, Value: LargeMonoreposRange.Min}, // default
+			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: AverageRepositoriesRange.Max},   // estimate
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 6000},                          // existing deployment: #27
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 2}}, Value: AverageRepositoriesRange.Min}, // default
 		},
 	},
 	{
