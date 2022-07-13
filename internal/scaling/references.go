@@ -10,7 +10,6 @@ var References = []ServiceScale{
 		ServiceName:       "frontend",
 		ServiceLabel:      "sourcegraph-frontend",
 		DockerServiceName: "sourcegraph-frontend-0",
-		PodName:           "frontend",
 		ScalingFactor:     ByEngagedUsers, // UsersRange = {5, 10000}
 		ReferencePoints: []Service{
 			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: UsersRange.Max}, // estimate
@@ -26,7 +25,6 @@ var References = []ServiceScale{
 		ServiceName:       "gitserver",
 		ServiceLabel:      "gitserver",
 		DockerServiceName: "gitserver-0",
-		PodName:           "gitserver",
 		ScalingFactor:     ByUserRepoSumRatio,
 		ReferencePoints: []Service{
 			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: UserRepoSumRatioRange.Max}, // estimate
@@ -43,11 +41,11 @@ var References = []ServiceScale{
 		ServiceName:       "minio",
 		ServiceLabel:      "minio",
 		DockerServiceName: "minio",
-		PodName:           "minio",
 		ScalingFactor:     ByLargestIndexSize,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Max, Value: LargestIndexSizeRange.Max}, // calculation
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Min, Value: LargestIndexSizeRange.Min}, // bare minimum
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Min, Value: 1},                         // bare minimum
+			{Replicas: 0, Resources: Resources{Requests: Resource{CPU: 0, MEM: 0}, Limits: Resource{CPU: 0, MEM: 0}}, Storage: 0, Value: LargestIndexSizeRange.Min},                           // when code intel is disabled
 		},
 	},
 
@@ -56,13 +54,12 @@ var References = []ServiceScale{
 		ServiceName:       "pgsql",
 		ServiceLabel:      "pgsql",
 		DockerServiceName: "pgsql",
-		PodName:           "pgsql",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 7, MEM: 32}, Limits: Resource{CPU: 7, MEM: 32}}, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 16}, Limits: Resource{CPU: 4, MEM: 16}}, Value: 25000},                        // existing deployment: #4
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Value: 4000},                           // existing deployment: #43
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Value: AverageRepositoriesRange.Min},   // bare minimum
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 7, MEM: 32}, Limits: Resource{CPU: 7, MEM: 32}}, Storage: 200, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 16}, Limits: Resource{CPU: 4, MEM: 16}}, Storage: 200, Value: 25000},                        // existing deployment: #4
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Storage: 100, Value: 4000},                           // existing deployment: #43
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 100, Value: AverageRepositoriesRange.Min},   // bare minimum
 		},
 	},
 
@@ -74,8 +71,8 @@ var References = []ServiceScale{
 		ServiceName:       "preciseCodeIntel",
 		ServiceLabel:      "precise-code-intel-worker",
 		DockerServiceName: "precise-code-intel-worker",
-		PodName:           "precise-code-intel",
-		ScalingFactor:     ByLargestIndexSize,
+		// PodName:           "precise-code-intel",
+		ScalingFactor: ByLargestIndexSize,
 		ReferencePoints: []Service{
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 2, MEM: 25}, Limits: Resource{CPU: 4, MEM: 50}}, Value: LargestIndexSizeRange.Max}, // calculation
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 2, MEM: 20}, Limits: Resource{CPU: 4, MEM: 41}}, Value: 81},                        // calculation
@@ -97,8 +94,8 @@ var References = []ServiceScale{
 		PodName:           "redis",
 		ScalingFactor:     ByUserRepoSumRatio,
 		ReferencePoints: []Service{
-			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Value: UserRepoSumRatioRange.Max}, // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Value: UserRepoSumRatioRange.Min}, // bare minimum
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UserRepoSumRatioRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 100, Value: UserRepoSumRatioRange.Min}, // bare minimum
 		},
 	},
 	{
@@ -108,8 +105,8 @@ var References = []ServiceScale{
 		PodName:           "redis",
 		ScalingFactor:     ByEngagedUsers,
 		ReferencePoints: []Service{
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Value: UsersRange.Max}, // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Value: UsersRange.Min}, // bare minimum
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UsersRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 100, Value: UsersRange.Min}, // bare minimum
 		},
 	},
 
@@ -118,7 +115,6 @@ var References = []ServiceScale{
 		ServiceName:       "searcher",
 		ServiceLabel:      "searcher",
 		DockerServiceName: "searcher-0",
-		PodName:           "searcher",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
@@ -131,7 +127,6 @@ var References = []ServiceScale{
 		ServiceName:       "searcher",
 		ServiceLabel:      "searcher",
 		DockerServiceName: "searcher-0",
-		PodName:           "searcher",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4, EPH: 440}, Limits: Resource{CPU: 6, MEM: 8, EPH: 480}}, Value: AverageRepositoriesRange.Max}, // estimate. eph based on dogfood
@@ -147,7 +142,6 @@ var References = []ServiceScale{
 		ServiceName:       "symbols",
 		ServiceLabel:      "symbols",
 		DockerServiceName: "symbols-0",
-		PodName:           "symbols",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // estimate
@@ -160,7 +154,6 @@ var References = []ServiceScale{
 		ServiceName:       "symbols",
 		ServiceLabel:      "symbols",
 		DockerServiceName: "symbols-0",
-		PodName:           "symbols",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Value: AverageRepositoriesRange.Max},   // estimate
@@ -172,7 +165,6 @@ var References = []ServiceScale{
 		ServiceName:       "symbols",
 		ServiceLabel:      "symbols",
 		DockerServiceName: "symbols-0",
-		PodName:           "symbols",
 		ScalingFactor:     ByLargestRepoSize,
 		ReferencePoints: []Service{
 			{Resources: Resources{Requests: Resource{EPH: 5900}, Limits: Resource{EPH: 6000}}, Value: LargestRepoSizeRange.Max}, // calculation
@@ -194,7 +186,6 @@ var References = []ServiceScale{
 		ServiceName:       "syntectServer",
 		ServiceLabel:      "syntect-server",
 		DockerServiceName: "syntect-server",
-		PodName:           "syntect-server",
 		ScalingFactor:     ByEngagedUsers,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 6}, Limits: Resource{CPU: 8, MEM: 12}}, Value: UsersRange.Max}, // estimate
@@ -208,7 +199,6 @@ var References = []ServiceScale{
 		ServiceName:       "worker",
 		ServiceLabel:      "worker",
 		DockerServiceName: "worker",
-		PodName:           "worker",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: AverageRepositoriesRange.Max}, // estimate
@@ -277,6 +267,41 @@ var References = []ServiceScale{
 			{Resources: Resources{Requests: Resource{CPU: .5}, Limits: Resource{CPU: 2}}, Value: UsersRange.Min}, // default
 		},
 	},
+	// Defaults
+	{
+		ServiceName:       "codeInsightsDB",
+		DockerServiceName: "codeinsights-db",
+		ServiceLabel:      "codeinsights-db",
+		ScalingFactor:     ByCodeInsightChoice,
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 2, MEM: 4}}, Storage: 200, Value: IsCodeInsightEnabled.Max}, // default: k8s
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 2, MEM: 4}}, Storage: 200, Value: 21},                       // default: k8s
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 2, MEM: 4}}, Storage: 100, Value: 1},                        // start with a lower value for smaller instance
+			{Replicas: 0, Resources: Resources{Requests: Resource{CPU: 0, MEM: 0}, Limits: Resource{CPU: 0, MEM: 0}}, Storage: 0, Value: IsCodeInsightEnabled.Min},   // disabled
+		},
+	},
+	{
+		ServiceName:       "codeIntelDB",
+		DockerServiceName: "codeintel-db",
+		ServiceLabel:      "codeintel-db",
+		ScalingFactor:     ByCodeIntelChoice,
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200, Value: IsCodeIntelEnabled.Max}, // default: k8s
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200, Value: 21},                     // default: k8s
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 100, Value: 1},                      // start with a lower value for smaller instance
+			{Replicas: 0, Resources: Resources{Requests: Resource{CPU: 0, MEM: 0}, Limits: Resource{CPU: 0, MEM: 0}}, Storage: 0, Value: IsCodeIntelEnabled.Min},   // disabled
+		},
+	},
+	{
+		ServiceName:       "prometheus",
+		DockerServiceName: "prometheus",
+		ServiceLabel:      "prometheus",
+		ScalingFactor:     ByEngagedUsers,
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 6}, Limits: Resource{CPU: 2, MEM: 6}}, Storage: 200, Value: UsersRange.Max}, // default: k8s
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Storage: 100, Value: UsersRange.Min},  // default: docker
+		},
+	},
 }
 
 // pods list services which live in the same pod. This is used to ensure we
@@ -290,14 +315,14 @@ var defaults = map[string]map[string]Service{
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .15, MEM: .2}, Limits: Resource{CPU: .3, MEM: .2}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}},
 	},
-	"codeinsights-db": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}, Storage: 128},
-	},
-	"codeintel-db": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 128},
-	},
+	// "codeInsightsDB": {
+	// 	"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Storage: 200},
+	// 	"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}, Storage: 128},
+	// },
+	// "codeIntelDB": {
+	// 	"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
+	// 	"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 128},
+	// },
 	"frontend": {
 		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2, EPH: 4}, Limits: Resource{CPU: 2, MEM: 4, EPH: 8}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 128},
@@ -306,7 +331,7 @@ var defaults = map[string]map[string]Service{
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 128},
 	},
 	"github-proxy": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .1, MEM: .25}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 200},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .1, MEM: .25}, Limits: Resource{CPU: 1, MEM: 1}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}, Storage: 1},
 	},
 	"gitserver": {
@@ -367,12 +392,12 @@ var defaults = map[string]map[string]Service{
 	},
 	// zoekt-webserver
 	"indexedSearchIndexer": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}, Storage: 200},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 8, MEM: 8}}, Storage: 0},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 16}}, Storage: 200},
 	},
 	// zoekt-indexserver
 	"indexedSearch": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Storage: 200},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 8, MEM: 50}}, Storage: 200},
 	},
 }

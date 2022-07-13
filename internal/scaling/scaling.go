@@ -14,6 +14,8 @@ import (
 type Factor int
 
 const (
+	ByCodeInsightChoice   Factor = iota
+	ByCodeIntelChoice     Factor = iota
 	ByEngagedUsers        Factor = iota
 	ByAverageRepositories Factor = iota
 	ByTotalRepoSize       Factor = iota
@@ -27,7 +29,7 @@ type Service struct {
 	// Value corresponding to the scaling factor type (users, repositories, large monorepos, etc.)
 	Value float64 `json:"-"`
 	// Optional values indicating that at the specified Value, these service properties are required.
-	Replicas                                int       `json:"replicaCount,omitempty"`
+	Replicas                                int       `json:"replicaCount"`
 	Resources                               Resources `json:"resources,omitempty"`
 	Storage                                 float64   `json:"-"`
 	PVC                                     string    `json:"storageSize,omitempty"`
@@ -97,13 +99,13 @@ func (r *Service) join(o *Service) {
 	if r.Replicas == 0 {
 		r.Replicas = o.Replicas
 	}
-	if r.Resources.Requests.CPU == 0 && r.Resources.Limits.CPU == 0 {
+	if r.Resources.Limits.CPU == 0 && o.Resources.Limits.CPU > 0 {
 		r.Resources.Requests.CPU = resourceRound(o.Resources.Requests.CPU)
 		r.Resources.Limits.CPU = resourceRound(o.Resources.Limits.CPU)
 		r.Resources.Requests.CPUS = addUnit(r.Resources.Requests.CPU, "")
 		r.Resources.Limits.CPUS = addUnit(r.Resources.Limits.CPU, "")
 	}
-	if r.Resources.Requests.MEM == 0 && r.Resources.Limits.MEM == 0 {
+	if r.Resources.Limits.MEM == 0 && o.Resources.Limits.MEM > 0 {
 		r.Resources.Requests.MEM = resourceRound(o.Resources.Requests.MEM)
 		r.Resources.Limits.MEM = resourceRound(o.Resources.Limits.MEM)
 		r.Resources.Requests.MEMS = addUnit(r.Resources.Requests.MEM, "G")
@@ -145,6 +147,9 @@ const (
 )
 
 var (
+	IsCodeIntelEnabled       = Range{0, 500}
+	IsCodeInsightEnabled     = Range{0, 500}
+	DeploymentTypeRange      = Range{0, 15}
 	UsersRange               = Range{5, 10000}
 	RepositoriesRange        = Range{5, 50000}
 	TotalRepoSizeRange       = Range{1, 5000}
@@ -233,15 +238,17 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	DeploymentType   string // calculated if set to "docker-compose"
-	CodeInsight      string // If Code Insight is enabled, add 1000 to user count
-	EngagementRate   int    // The percentage of users who use Sourcegraph regularly.
-	Repositories     int    // Number of repositories
-	LargeMonorepos   int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
-	LargestRepoSize  int    // Size of the largest repository in GB
-	LargestIndexSize int    // Size of the largest LSIF index file in GB
-	TotalRepoSize    int    // Size of all repositories
-	Users            int    // Number of users
+	DeploymentType    string // calculated if set to "docker-compose"
+	DeploymentTypeInt int    // docker-compose =0, k8s = 2
+	CodeInsight       int    // If Code Insight is enabled, add 1000 to user count
+	CodeIntel         int    // If Code Intel is enabled
+	EngagementRate    int    // The percentage of users who use Sourcegraph regularly.
+	Repositories      int    // Number of repositories
+	LargeMonorepos    int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
+	LargestRepoSize   int    // Size of the largest repository in GB
+	LargestIndexSize  int    // Size of the largest LSIF index file in GB
+	TotalRepoSize     int    // Size of all repositories
+	Users             int    // Number of users
 
 	// calculated results
 	AverageRepositories int                        // Number of total repositories including monorepos: number repos + monorepos x 50
@@ -261,6 +268,14 @@ type Estimate struct {
 }
 
 func (e *Estimate) Calculate() *Estimate {
+	// calculate storage size
+	dockerFactor := 2
+	k8sFactor := 1
+	if e.DeploymentType != "docker-compose" {
+		e.DeploymentType = "kubernetes"
+		dockerFactor = 1
+		k8sFactor = 0
+	}
 	e.EngagedUsers = e.Users * e.EngagementRate / 100
 	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*MonorepoFactor) / 1000
 	e.AverageRepositories = e.Repositories + e.LargeMonorepos*MonorepoFactor
@@ -271,9 +286,13 @@ func (e *Estimate) Calculate() *Estimate {
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
 			value = float64(e.EngagedUsers)
-			if e.CodeInsight == "Enable" {
+			if e.CodeInsight > 0 {
 				value = float64(e.EngagedUsers + 1000)
 			}
+		case ByCodeInsightChoice:
+			value = float64(e.CodeInsight * e.UserRepoSumRatio)
+		case ByCodeIntelChoice:
+			value = float64(e.CodeIntel * e.UserRepoSumRatio)
 		case ByAverageRepositories:
 			value = float64(e.AverageRepositories)
 		case ByLargeMonorepos:
@@ -297,17 +316,11 @@ func (e *Estimate) Calculate() *Estimate {
 		v.PodName = ref.PodName
 		v.NameInDocker = ref.DockerServiceName
 		// calculate storage size
-		var dockerFactor = 1
-		var k8sFactor = 0
-		if e.DeploymentType == "docker-compose" {
-			dockerFactor = 2
-			k8sFactor = 1
-		}
 		switch ref.ServiceName {
 		case "gitserver":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100)
 		case "minio":
-			v.Storage = float64(e.LargestIndexSize)
+			v.Storage = float64(e.LargestIndexSize * e.CodeIntel)
 		case "indexedSearch":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor) // times 2 for docker compose deployment
 		case "indexedSearchIndexer":
@@ -318,9 +331,6 @@ func (e *Estimate) Calculate() *Estimate {
 		e.Services[ref.ServiceName] = r
 		// create struct for docker-compose yaml file
 		e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
-	}
-	if e.DeploymentType == "type" {
-		e.DeploymentType = "kubernetes"
 	}
 	// Ensure we have the same replica counts for services that live in the
 	// same pod.
@@ -346,8 +356,14 @@ func (e *Estimate) Calculate() *Estimate {
 		if _, ok := visited[service]; ok {
 			return
 		}
+		if ref.Replicas == 0 {
+			return
+		}
 		visited[service] = struct{}{}
 		sumStorageSize += ref.Storage
+		if e.DeploymentType != "docker-compose" {
+			sumStorageSize += ref.Resources.Limits.EPH
+		}
 		sumCPURequests += ref.Resources.Requests.CPU
 		sumCPULimits += ref.Resources.Limits.CPU
 		sumMemoryGBRequests += ref.Resources.Requests.MEM
@@ -391,7 +407,6 @@ func (e *Estimate) MarkdownExport() []byte {
 		fmt.Fprintf(&buf, "* **Estimated total memory:** not available\n")
 		fmt.Fprintf(&buf, "* **Estimated total storage:** not available\n")
 	}
-	fmt.Fprintf(&buf, "\n<small>**Note:** The estimated total includes default values for other services.</small>\n")
 	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
 		if e.DeploymentType == "docker-compose" {
 			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
@@ -436,61 +451,58 @@ func (e *Estimate) MarkdownExport() []byte {
 		ref := e.Services[service]
 		def := defaults[service][e.DeploymentType]
 		plus := ""
-		serviceName := fmt.Sprint(ref.Label, "</br><small>(pod: ", ref.PodName, ")</small>")
-		replicas := "n/a"
-		cpuRequest := "n/a"
-		cpuLimit := "n/a"
-		memoryGBRequest := "n/a"
-		memoryGBLimit := "n/a"
+		serviceName := ref.Label
+		replicas := "-"
+		cpuRequest := "-"
+		cpuLimit := "-"
+		memoryGBRequest := "-"
+		memoryGBLimit := "-"
 		ephRequest := "-"
 		ephLimit := "-"
 		pvc := "-"
+		pvcUnit := ""
 
-		if !ref.ContactSupport {
+		if ref.PodName != "" {
+			serviceName = fmt.Sprint(ref.Label, "</br><small>(pod: ", ref.PodName, ")</small>")
+		}
+
+		if !ref.ContactSupport && ref.Replicas > 0 {
 			if e.DeploymentType == "docker-compose" {
+				pvcUnit = "g"
 				serviceName = ref.NameInDocker
 				replicas = fmt.Sprint("1", plus)
-				cpuRequest = "-"
-				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU*float64(ref.Replicas), plus)
-				memoryGBRequest = "-"
-				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM*float64(ref.Replicas), "g", plus)
-				ephRequest = "-"
-				ephLimit = "-"
-				if ref.Storage > 0 {
-					pvc = fmt.Sprint(ref.Storage, "G", plus, "ꜝ")
+				if ref.Resources.Limits.CPU > 0 {
+					cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU*float64(ref.Replicas), plus)
+				}
+				if ref.Resources.Limits.MEM > 0 {
+					memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM*float64(ref.Replicas), "g", plus)
 				}
 				if ref.Resources.Limits.EPH > 0 {
-					pvc = fmt.Sprint(ref.Resources.Limits.EPH, "G", plus, "ꜝ")
+					pvc = fmt.Sprint(ref.Resources.Limits.EPH, "G", plus)
 				}
 			}
 			if e.DeploymentType == "kubernetes" {
+				pvcUnit = "Gi"
 				replicas = fmt.Sprint(ref.Replicas, plus)
-				cpuRequest = fmt.Sprint(ref.Resources.Requests.CPU, plus)
-				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU, plus)
-				memoryGBRequest = fmt.Sprint(ref.Resources.Requests.MEMS, plus)
-				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEMS, plus)
-				if ref.Replicas != def.Replicas {
-					replicas += "ꜝ"
+				if ref.Resources.Limits.CPU > 0 {
+					cpuRequest = fmt.Sprint(ref.Resources.Requests.CPU, plus)
+					cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU, plus)
 				}
-				if ref.Resources.Requests.CPU != def.Resources.Requests.CPU {
-					cpuRequest += "ꜝ"
-				}
-				if ref.Resources.Requests.MEM != def.Resources.Requests.MEM {
-					memoryGBRequest += "ꜝ"
-				}
-				if ref.Storage > 0 {
-					pvc = fmt.Sprint(ref.PVC, plus, "ꜝ")
+				if ref.Resources.Limits.MEM > 0 {
+					memoryGBRequest = fmt.Sprint(ref.Resources.Requests.MEMS, plus)
+					memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEMS, plus)
 				}
 				if ref.Resources.Limits.EPH > 0 {
-					ephRequest = fmt.Sprint(ref.Resources.Requests.EPHS, plus, "ꜝ")
-					ephLimit = fmt.Sprint(ref.Resources.Limits.EPHS, plus, "ꜝ")
+					ephRequest = fmt.Sprint(ref.Resources.Requests.EPHS, plus)
+					ephLimit = fmt.Sprint(ref.Resources.Limits.EPHS, plus)
 				}
 			}
-			if ref.Resources.Limits.CPU != def.Resources.Limits.CPU {
-				cpuLimit += "ꜝ"
+			// display default value for storage if ref does not have one
+			if def.Storage > 0 && ref.Storage == 0 {
+				pvc = fmt.Sprint(def.Storage, pvcUnit, plus)
 			}
-			if ref.Resources.Limits.MEM != def.Resources.Limits.MEM {
-				memoryGBLimit += "ꜝ"
+			if ref.Storage > 0 {
+				pvc = fmt.Sprint(ref.Storage, pvcUnit, plus)
 			}
 		}
 		fmt.Fprintf(
@@ -507,8 +519,6 @@ func (e *Estimate) MarkdownExport() []byte {
 			pvc,
 		)
 	}
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "> ꜝ<small> This is a non-default value.</small>\n")
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "\n")
 
