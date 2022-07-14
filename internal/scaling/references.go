@@ -10,6 +10,22 @@ var References = []ServiceScale{
 		ServiceName:       "frontend",
 		ServiceLabel:      "sourcegraph-frontend",
 		DockerServiceName: "sourcegraph-frontend-0",
+		PodName:           "frontend",
+		ScalingFactor:     ByEngagedUsers, // UsersRange = {5, 10000}
+		ReferencePoints: []Service{
+			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8, EPH: 6}, Limits: Resource{CPU: 4, MEM: 16, EPH: 24}}, Value: UsersRange.Max}, // estimate
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8, EPH: 6}, Limits: Resource{CPU: 8, MEM: 16, EPH: 24}}, Value: 5000},           // estimate
+			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4, EPH: 6}, Limits: Resource{CPU: 4, MEM: 8, EPH: 24}}, Value: 2100},            // existing deployment: #4
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4, EPH: 4}, Limits: Resource{CPU: 4, MEM: 8, EPH: 16}}, Value: 2050},            // existing deployment: #45
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2, EPH: 4}, Limits: Resource{CPU: 2, MEM: 4, EPH: 16}}, Value: UsersRange.Min},  // default
+		},
+	},
+	// docker compose only
+	{
+		ServiceName:       "frontend-internal",
+		ServiceLabel:      "sourcegraph-frontend-internal",
+		DockerServiceName: "sourcegraph-frontend-internal",
+		PodName:           "frontend",
 		ScalingFactor:     ByEngagedUsers, // UsersRange = {5, 10000}
 		ReferencePoints: []Service{
 			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: UsersRange.Max}, // estimate
@@ -95,7 +111,7 @@ var References = []ServiceScale{
 		ScalingFactor:     ByUserRepoSumRatio,
 		ReferencePoints: []Service{
 			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UserRepoSumRatioRange.Max}, // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 100, Value: UserRepoSumRatioRange.Min}, // bare minimum
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 50, Value: UserRepoSumRatioRange.Min},  // bare minimum
 		},
 	},
 	{
@@ -106,7 +122,7 @@ var References = []ServiceScale{
 		ScalingFactor:     ByEngagedUsers,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UsersRange.Max}, // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 100, Value: UsersRange.Min}, // bare minimum
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 50, Value: UsersRange.Min},  // bare minimum
 		},
 	},
 
@@ -267,7 +283,7 @@ var References = []ServiceScale{
 			{Resources: Resources{Requests: Resource{CPU: .5}, Limits: Resource{CPU: 2}}, Value: UsersRange.Min}, // default
 		},
 	},
-	// Defaults
+	// codeinsight-db
 	{
 		ServiceName:       "codeInsightsDB",
 		DockerServiceName: "codeinsights-db",
@@ -280,6 +296,7 @@ var References = []ServiceScale{
 			{Replicas: 0, Resources: Resources{Requests: Resource{CPU: 0, MEM: 0}, Limits: Resource{CPU: 0, MEM: 0}}, Storage: 0, Value: IsCodeInsightEnabled.Min},   // disabled
 		},
 	},
+	// codeintel-db
 	{
 		ServiceName:       "codeIntelDB",
 		DockerServiceName: "codeintel-db",
@@ -292,6 +309,7 @@ var References = []ServiceScale{
 			{Replicas: 0, Resources: Resources{Requests: Resource{CPU: 0, MEM: 0}, Limits: Resource{CPU: 0, MEM: 0}}, Storage: 0, Value: IsCodeIntelEnabled.Min},   // disabled
 		},
 	},
+	// default setup should work for instances of all sizes
 	{
 		ServiceName:       "prometheus",
 		DockerServiceName: "prometheus",
@@ -300,6 +318,17 @@ var References = []ServiceScale{
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 6}, Limits: Resource{CPU: 2, MEM: 6}}, Storage: 200, Value: UsersRange.Max}, // default: k8s
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 4}, Limits: Resource{CPU: 4, MEM: 8}}, Storage: 100, Value: UsersRange.Min},  // default: docker
+		},
+	},
+	// default setup should work for instances of all sizes
+	{
+		ServiceName:       "grafana",
+		DockerServiceName: "grafana",
+		ServiceLabel:      "grafana",
+		ScalingFactor:     ByEngagedUsers,
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 2, Value: UsersRange.Max},        // default: k8s
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .1, MEM: .512}, Limits: Resource{CPU: 1, MEM: .512}}, Storage: 2, Value: UsersRange.Min}, // disabled
 		},
 	},
 }
@@ -315,14 +344,14 @@ var defaults = map[string]map[string]Service{
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .15, MEM: .2}, Limits: Resource{CPU: .3, MEM: .2}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}},
 	},
-	// "codeInsightsDB": {
-	// 	"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Storage: 200},
-	// 	"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}, Storage: 128},
-	// },
-	// "codeIntelDB": {
-	// 	"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},
-	// 	"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}, Storage: 128},
-	// },
+	"codeInsightsDB": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}},
+	},
+	"codeIntelDB": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 4}}},
+	},
 	"frontend": {
 		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 2, MEM: 2, EPH: 4}, Limits: Resource{CPU: 2, MEM: 4, EPH: 8}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 128},
@@ -359,8 +388,8 @@ var defaults = map[string]map[string]Service{
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 200},
 	},
 	"minio": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: 100},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}, Storage: 128},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}},
 	},
 	"redisCache": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100},

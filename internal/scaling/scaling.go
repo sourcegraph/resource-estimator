@@ -29,6 +29,7 @@ type Service struct {
 	// Value corresponding to the scaling factor type (users, repositories, large monorepos, etc.)
 	Value float64 `json:"-"`
 	// Optional values indicating that at the specified Value, these service properties are required.
+	Enabled                                 *bool     `json:"enabled,omitempty"`
 	Replicas                                int       `json:"replicaCount"`
 	Resources                               Resources `json:"resources,omitempty"`
 	Storage                                 float64   `json:"-"`
@@ -78,6 +79,9 @@ func (r ResourceRange) MulScalar(f float64) ResourceRange {
 // This ensures 0.25 CPU doesn't get rounded to zero, and ensures 0.517829457364341 CPU gets
 // rounded to 0.25.
 func resourceRound(f float64) float64 {
+	if f == 0 {
+		return math.Round(0)
+	}
 	if f > 1 {
 		return math.Round(f)
 	}
@@ -85,6 +89,9 @@ func resourceRound(f float64) float64 {
 }
 
 func addUnit(f float64, t string) string {
+	if f == 0 {
+		return "0"
+	}
 	if f < 1 {
 		return fmt.Sprintf("%vM", math.Trunc(f*1000))
 	}
@@ -96,8 +103,14 @@ func (r *Service) join(o *Service) {
 	r.Label = o.Label
 	r.NameInDocker = o.NameInDocker
 	r.PodName = o.PodName
-	if r.Replicas == 0 {
-		r.Replicas = o.Replicas
+	r.Replicas = o.Replicas
+	f := new(bool)
+	*f = false
+	if r.PodName == "frontend" {
+		r.PodName = ""
+	}
+	if o.Replicas == 0 {
+		r.Enabled = f
 	}
 	if r.Resources.Limits.CPU == 0 && o.Resources.Limits.CPU > 0 {
 		r.Resources.Requests.CPU = resourceRound(o.Resources.Requests.CPU)
@@ -122,6 +135,13 @@ func (r *Service) join(o *Service) {
 		r.PVC = addUnit(resourceRound(o.Storage/float64(r.Replicas)), "Gi")
 	}
 	r.ContactSupport = r.ContactSupport || o.ContactSupport
+}
+
+func (d DockerResources) split(o *Service) DockerResources {
+	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*float64(o.Replicas)/2, ""))
+	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*float64(o.Replicas)/2, "g"))
+	d.Storage = strings.ToLower(addUnit(o.Storage*float64(o.Replicas)/2, "g"))
+	return d
 }
 
 func (d DockerResources) join(o *Service) DockerResources {
@@ -328,9 +348,19 @@ func (e *Estimate) Calculate() *Estimate {
 		}
 		r := e.Services[ref.ServiceName]
 		(&r).join(&v)
-		e.Services[ref.ServiceName] = r
-		// create struct for docker-compose yaml file
-		e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
+		if e.DeploymentType == "docker-compose" {
+			e.Services[ref.ServiceName] = r
+			if ref.PodName == "frontend" {
+				e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].split(&r)
+			} else {
+				e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
+			}
+		} else {
+			if ref.ServiceName != "frontend-internal" {
+				e.Services[ref.ServiceName] = r
+				e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
+			}
+		}
 	}
 	// Ensure we have the same replica counts for services that live in the
 	// same pod.
@@ -536,7 +566,7 @@ func (e *Estimate) HelmExport() string {
 		fmt.Printf("err: %v\n", err)
 	}
 	s := strings.Replace(string(y), `"`, "'", -1)
-	return s
+	return strings.Replace(string(s), `{}`, "", -1)
 }
 
 func (e *Estimate) DockerExport() string {

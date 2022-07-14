@@ -25,7 +25,8 @@ func TestEstimate(t *testing.T) {
 			LargestIndexSize: 1,
 			Users:            100,
 			EngagementRate:   50,
-			CodeInsight:      "Enable",
+			CodeInsight:      0,
+			CodeIntel:        0,
 		},
 	}, {
 		Name: "monorepo",
@@ -38,7 +39,8 @@ func TestEstimate(t *testing.T) {
 			LargestIndexSize: 1,
 			Users:            100,
 			EngagementRate:   50,
-			CodeInsight:      "Enable",
+			CodeInsight:      1,
+			CodeIntel:        1,
 		},
 	}}
 

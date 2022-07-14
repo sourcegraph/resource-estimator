@@ -44,7 +44,7 @@ type MainView struct {
 	deploymentType                                                         string
 }
 
-func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
+func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int, disabled bool) vecty.ComponentOrHTML {
 	return elem.Label(
 		vecty.Markup(vecty.Style("margin-top", "10px")),
 		elem.Input(
@@ -56,6 +56,7 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 				vecty.Property("step", step),
 				vecty.Property("min", rnge.Min),
 				vecty.Property("max", rnge.Max),
+				vecty.Property("disabled", disabled),
 			),
 		),
 		elem.Div(
@@ -114,17 +115,13 @@ func (p *MainView) radioInput(groupName string, options []string, handler func(e
 }
 
 func (p *MainView) inputs() vecty.ComponentOrHTML {
+
 	lsifDiv := elem.Div(p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
 		p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 		vecty.Rerender(p)
-	}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1),
-		elem.Div(
-			vecty.Markup(vecty.Style("margin-top", "5px"), vecty.Style("font-size", "small")),
-			vecty.Text("Set value to 0 if precise code intelligence is disabled"),
-		))
+	}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1, (p.codeintelEnabled == 0)))
 	// Do not display input section for largest LSIF index file when precise code intel is disabled
 	if p.codeintelEnabled == 0 {
-		lsifDiv = elem.Div()
 		p.largestIndexSize = 0
 	}
 	return vecty.List{
@@ -138,7 +135,7 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			p.numberInput("users", func(e *vecty.Event) {
 				p.users, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
-			}, p.users, scaling.UsersRange, 1),
+			}, p.users, scaling.UsersRange, 1, false),
 			p.rangeInput(fmt.Sprint(p.engagementRate, "% engagement rate"), func(e *vecty.Event) {
 				p.engagementRate, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
@@ -146,11 +143,11 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			p.numberInput("repositories", func(e *vecty.Event) {
 				p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
-			}, p.repositories, scaling.RepositoriesRange, 5),
+			}, p.repositories, scaling.RepositoriesRange, 5, false),
 			p.numberInput("GB - the size of all repositories", func(e *vecty.Event) {
 				p.reposize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
-			}, p.reposize, scaling.TotalRepoSizeRange, 1),
+			}, p.reposize, scaling.TotalRepoSizeRange, 1, false),
 			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 2GB)"), func(e *vecty.Event) {
 				p.largeMonorepos, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
@@ -158,7 +155,7 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			p.numberInput("GB - the size of the largest repository", func(e *vecty.Event) {
 				p.largestRepoSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
-			}, p.largestRepoSize, scaling.LargestRepoSizeRange, 1),
+			}, p.largestRepoSize, scaling.LargestRepoSizeRange, 1, false),
 			p.radioInput("Code Insights: ", []string{"Disable", "Enable"}, func(e *vecty.Event) {
 				a := e.Value.Get("target").Get("value").String()
 				p.codeinsightEabled = 0
@@ -178,6 +175,10 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				vecty.Rerender(p)
 			}),
 			lsifDiv,
+			elem.Div(
+				vecty.Markup(vecty.Style("margin-top", "5px"), vecty.Style("font-size", "small")),
+				vecty.Text("It remove values for codeintel-db and minio when disabled"),
+			),
 		),
 	}
 }

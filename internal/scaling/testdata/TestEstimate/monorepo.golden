@@ -1,10 +1,8 @@
 `### Estimate summary
 
-* **Estimated total CPUs:** 41
-* **Estimated total memory:** 64g
-* **Estimated total storage:** 898g
-
-<small>**Note:** The estimated total includes default values for other services.</small>
+* **Estimated total CPUs:** 43
+* **Estimated total memory:** 67g
+* **Estimated total storage:** 870g
 * <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>
   <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>
   <ul>
@@ -19,21 +17,24 @@
 
 | Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | EPH requests | EPH limits | Storage |
 |-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
-| sourcegraph-frontend-0 | 1 | - | 6ꜝ | - | 12gꜝ | - | - | - |
-| gitserver-0 | 1 | - | 4 | - | 8g | - | - | 36Gꜝ |
-| zoekt-indexserver-0 | 1 | - | 8 | - | 12gꜝ | - | - | 9Gꜝ |
-| zoekt-webserver-0 | 1 | - | 5ꜝ | - | 8gꜝ | - | - | 9Gꜝ |
-| minio | 1 | - | 1 | - | 0.5gꜝ | - | - | 1Gꜝ |
-| pgsql | 1 | - | 4 | - | 4g | - | - | - |
+| codeinsights-db | - | - | - | - | - | - | - | - |
+| codeintel-db | - | - | - | - | - | - | - | - |
+| sourcegraph-frontend-0 | 1 | - | 6 | - | 12g | - | - | 128g |
+| sourcegraph-frontend-internal | 1 | - | 6 | - | 12g | - | - | 128g |
+| gitserver-0 | 1 | - | 4 | - | 8g | - | - | 36g |
+| grafana | 1 | - | 1 | - | 0.5g | - | - | 2g |
+| zoekt-indexserver-0 | 1 | - | 8 | - | 12g | - | - | 9g |
+| zoekt-webserver-0 | 1 | - | 5 | - | 8g | - | - | 9g |
+| minio | 1 | - | 1 | - | 0.5g | - | - | 1g |
+| pgsql | 1 | - | 4 | - | 4g | - | - | 100g |
 | precise-code-intel-worker | 1 | - | 2 | - | 4g | - | - | - |
-| redis-cache | 1 | - | 1 | - | 1gꜝ | - | - | - |
-| redis-store | 1 | - | 1 | - | 2gꜝ | - | - | - |
-| searcher-0 | 1 | - | 2 | - | 2g | - | - | 2Gꜝ |
-| symbols-0 | 1 | - | 2 | - | 2gꜝ | - | - | 3Gꜝ |
+| prometheus | 1 | - | 4 | - | 8g | - | - | 100g |
+| redis-cache | 1 | - | 1 | - | 1g | - | - | 50g |
+| redis-store | 1 | - | 1 | - | 2g | - | - | 50g |
+| searcher | - | - | - | - | - | - | - | - |
+| symbols | - | - | - | - | - | - | - | - |
 | syntect-server | 1 | - | 4 | - | 6g | - | - | - |
-| worker | 1 | - | 2ꜝ | - | 4g | - | - | - |
-
-> ꜝ<small> This is a non-default value.</small>
+| worker | 1 | - | 2 | - | 4g | - | - | 128g |
 
 
 `
