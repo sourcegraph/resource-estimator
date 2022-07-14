@@ -355,11 +355,9 @@ func (e *Estimate) Calculate() *Estimate {
 			} else {
 				e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
 			}
-		} else {
-			if ref.ServiceName != "frontend-internal" {
-				e.Services[ref.ServiceName] = r
-				e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
-			}
+		} else if ref.ServiceName != "frontend-internal" {
+			e.Services[ref.ServiceName] = r
+			e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
 		}
 	}
 	// Ensure we have the same replica counts for services that live in the
@@ -565,8 +563,9 @@ func (e *Estimate) HelmExport() string {
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 	}
-	s := strings.Replace(string(y), `"`, "'", -1)
-	return strings.Replace(string(s), `{}`, "", -1)
+	s := strings.NewReplacer(`"`, "'", "{}", "")
+	r := s.Replace(string(y))
+	return r
 }
 
 func (e *Estimate) DockerExport() string {
