@@ -115,7 +115,6 @@ func (p *MainView) radioInput(groupName string, options []string, handler func(e
 }
 
 func (p *MainView) inputs() vecty.ComponentOrHTML {
-
 	lsifDiv := elem.Div(p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
 		p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 		vecty.Rerender(p)

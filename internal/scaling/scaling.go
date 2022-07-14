@@ -103,14 +103,18 @@ func (r *Service) join(o *Service) {
 	r.Label = o.Label
 	r.NameInDocker = o.NameInDocker
 	r.PodName = o.PodName
-	r.Replicas = o.Replicas
+
 	f := new(bool)
 	*f = false
 	if r.PodName == "frontend" {
 		r.PodName = ""
 	}
-	if o.Replicas == 0 {
+	if r.Replicas == 0 && o.Replicas == 0 {
 		r.Enabled = f
+	} else if r.Replicas > o.Replicas {
+		o.Replicas = r.Replicas
+	} else {
+		r.Replicas = o.Replicas
 	}
 	if r.Resources.Limits.CPU == 0 && o.Resources.Limits.CPU > 0 {
 		r.Resources.Requests.CPU = resourceRound(o.Resources.Requests.CPU)
@@ -348,15 +352,14 @@ func (e *Estimate) Calculate() *Estimate {
 		}
 		r := e.Services[ref.ServiceName]
 		(&r).join(&v)
+		e.Services[ref.ServiceName] = r
 		if e.DeploymentType == "docker-compose" {
-			e.Services[ref.ServiceName] = r
 			if ref.PodName == "frontend" {
 				e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].split(&r)
 			} else {
 				e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
 			}
 		} else if ref.ServiceName != "frontend-internal" {
-			e.Services[ref.ServiceName] = r
 			e.DockerServices[ref.DockerServiceName] = e.DockerServices[ref.ServiceName].join(&r)
 		}
 	}
