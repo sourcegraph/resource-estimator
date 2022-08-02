@@ -93,7 +93,7 @@ func addUnit(f float64, t string) string {
 		return "0"
 	}
 	if f < 1 {
-		return fmt.Sprintf("%vM", math.Trunc(f*1000))
+		return fmt.Sprintf("%vm", math.Trunc(f*1000))
 	}
 	return fmt.Sprintf("%v%v", math.Trunc(f), t)
 }
@@ -492,12 +492,17 @@ func (e *Estimate) MarkdownExport() []byte {
 		ephLimit := "-"
 		pvc := "-"
 		pvcUnit := ""
+		skip := false
 
 		if ref.PodName != "" {
 			serviceName = fmt.Sprint(ref.Label, "</br><small>(pod: ", ref.PodName, ")</small>")
 		}
 
-		if !ref.ContactSupport && ref.Replicas > 0 {
+		if ref.NameInDocker == "sourcegraph-frontend-internal" && e.DeploymentType == "kubernetes" {
+			skip = true
+		}
+
+		if !skip && !ref.ContactSupport && ref.Replicas > 0 {
 			if e.DeploymentType == "docker-compose" {
 				pvcUnit = "g"
 				serviceName = ref.NameInDocker
@@ -536,19 +541,21 @@ func (e *Estimate) MarkdownExport() []byte {
 				pvc = fmt.Sprint(ref.Storage, pvcUnit, plus)
 			}
 		}
-		fmt.Fprintf(
-			&buf,
-			"| %v | %v | %v | %v | %v | %v | %v | %v | %v |\n",
-			serviceName,
-			replicas,
-			cpuRequest,
-			cpuLimit,
-			memoryGBRequest,
-			memoryGBLimit,
-			ephRequest,
-			ephLimit,
-			pvc,
-		)
+		if !skip {
+			fmt.Fprintf(
+				&buf,
+				"| %v | %v | %v | %v | %v | %v | %v | %v | %v |\n",
+				serviceName,
+				replicas,
+				cpuRequest,
+				cpuLimit,
+				memoryGBRequest,
+				memoryGBLimit,
+				ephRequest,
+				ephLimit,
+				pvc,
+			)
+		}
 	}
 	fmt.Fprintf(&buf, "\n")
 	fmt.Fprintf(&buf, "\n")

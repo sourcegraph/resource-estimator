@@ -45,6 +45,9 @@ type MainView struct {
 }
 
 func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int, disabled bool) vecty.ComponentOrHTML {
+	if float64(value) > rnge.Max {
+		postLabel += fmt.Sprint(" ERROR: value must be below ", rnge.Max)
+	}
 	return elem.Label(
 		vecty.Markup(vecty.Style("margin-top", "10px")),
 		elem.Input(
@@ -133,6 +136,9 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			}),
 			p.numberInput("users", func(e *vecty.Event) {
 				p.users, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				if p.users > int(scaling.UsersRange.Max) {
+					p.users = int(scaling.UsersRange.Max)
+				}
 				vecty.Rerender(p)
 			}, p.users, scaling.UsersRange, 1, false),
 			p.rangeInput(fmt.Sprint(p.engagementRate, "% engagement rate"), func(e *vecty.Event) {
@@ -141,10 +147,16 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			}, p.engagementRate, scaling.EngagementRateRange, 5),
 			p.numberInput("repositories", func(e *vecty.Event) {
 				p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				if p.repositories > int(scaling.RepositoriesRange.Max) {
+					p.repositories = int(scaling.RepositoriesRange.Max)
+				}
 				vecty.Rerender(p)
 			}, p.repositories, scaling.RepositoriesRange, 5, false),
 			p.numberInput("GB - the size of all repositories", func(e *vecty.Event) {
 				p.reposize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				if p.reposize > int(scaling.TotalRepoSizeRange.Max) {
+					p.reposize = int(scaling.TotalRepoSizeRange.Max)
+				}
 				vecty.Rerender(p)
 			}, p.reposize, scaling.TotalRepoSizeRange, 1, false),
 			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 2GB)"), func(e *vecty.Event) {
@@ -153,6 +165,9 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			}, p.largeMonorepos, scaling.LargeMonoreposRange, 1),
 			p.numberInput("GB - the size of the largest repository", func(e *vecty.Event) {
 				p.largestRepoSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
+				if p.largestRepoSize > int(scaling.LargestRepoSizeRange.Max) {
+					p.largestRepoSize = int(scaling.LargestRepoSizeRange.Max)
+				}
 				vecty.Rerender(p)
 			}, p.largestRepoSize, scaling.LargestRepoSizeRange, 1, false),
 			p.radioInput("Code Insights: ", []string{"Disable", "Enable"}, func(e *vecty.Event) {
@@ -176,7 +191,7 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			lsifDiv,
 			elem.Div(
 				vecty.Markup(vecty.Style("margin-top", "5px"), vecty.Style("font-size", "small")),
-				vecty.Text("It remove values for codeintel-db and minio when disabled"),
+				vecty.Text("Removes codeintel-db and minio when disabled"),
 			),
 		),
 	}
@@ -255,7 +270,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 			elem.Strong(vecty.Text("Questions or concerns? ")),
 			elem.Anchor(
 				vecty.Markup(prop.Href("mailto:support@sourcegraph.com")),
-				vecty.Text("Get help from an engineer"),
+				vecty.Text("Contact us!"),
 			),
 		),
 	)

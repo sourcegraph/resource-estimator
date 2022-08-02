@@ -37,19 +37,15 @@ var References = []ServiceScale{
 	},
 
 	// Gitserver scales based on the total size of all repoes and number of average repositories.
+	// formula: number of repos * 320/6 million
 	{
 		ServiceName:       "gitserver",
 		ServiceLabel:      "gitserver",
 		DockerServiceName: "gitserver-0",
-		ScalingFactor:     ByUserRepoSumRatio,
+		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Replicas: 5, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: UserRepoSumRatioRange.Max}, // estimate
-			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 16, MEM: 32}, Limits: Resource{CPU: 16, MEM: 32}}, Value: 150},                       // estimate
-			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 50},                          // existing deployment: dogfood
-			{Replicas: 3, Resources: Resources{Requests: Resource{CPU: 8, MEM: 32}, Limits: Resource{CPU: 8, MEM: 32}}, Value: 30},                          // estimate
-			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 4, MEM: 25}, Limits: Resource{CPU: 4, MEM: 25}}, Value: 20},                          // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 8, MEM: 16}, Limits: Resource{CPU: 8, MEM: 16}}, Value: 5},                           // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Value: UserRepoSumRatioRange.Min},     // default for instance with <4000 repos
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 16}, Limits: Resource{CPU: 4, MEM: 16}}, Value: AverageRepositoriesRange.Max}, // calculation
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Value: AverageRepositoriesRange.Min},   // default
 		},
 	},
 
@@ -110,7 +106,7 @@ var References = []ServiceScale{
 		PodName:           "redis",
 		ScalingFactor:     ByUserRepoSumRatio,
 		ReferencePoints: []Service{
-			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UserRepoSumRatioRange.Max}, // estimate
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 3}, Limits: Resource{CPU: 1, MEM: 3}}, Storage: 100, Value: UserRepoSumRatioRange.Max}, // estimate
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 50, Value: UserRepoSumRatioRange.Min},  // bare minimum
 		},
 	},
@@ -121,7 +117,7 @@ var References = []ServiceScale{
 		PodName:           "redis",
 		ScalingFactor:     ByEngagedUsers,
 		ReferencePoints: []Service{
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UsersRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 3}, Limits: Resource{CPU: 1, MEM: 3}}, Storage: 100, Value: UsersRange.Max}, // estimate: 160MB on dotcom & <20MB for Managed Instances
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 50, Value: UsersRange.Min},  // bare minimum
 		},
 	},
