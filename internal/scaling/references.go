@@ -37,7 +37,7 @@ var References = []ServiceScale{
 	},
 
 	// Gitserver scales based on the total size of all repoes and number of average repositories.
-	// formula: number of repos * 320/6 million
+	// formula: CPU = number of repos * 320/6 million -suggested by geoffrey
 	{
 		ServiceName:       "gitserver",
 		ServiceLabel:      "gitserver",

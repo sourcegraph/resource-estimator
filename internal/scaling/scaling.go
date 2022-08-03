@@ -578,18 +578,4 @@ func (e *Estimate) HelmExport() string {
 	return r
 }
 
-func (e *Estimate) DockerExport() string {
-	var d DockerServices
-	d.Version = "2.4"
-	d.Services = e.DockerServices
-	j, err := json.Marshal(d)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	y, err := yaml.JSONToYAML(j)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	s := strings.Replace(string(y), `"`, "", -1)
-	return s
-}
+// TODO: ADD DOCKER COMPOSE EXPORT
