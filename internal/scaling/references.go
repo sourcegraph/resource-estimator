@@ -114,6 +114,7 @@ var References = []ServiceScale{
 	},
 
 	// Searcher replicas scale based the number of concurrent unidexed queries & number concurrent of structural searches
+	// Formula: replica for every 500k repos
 	{
 		ServiceName:       "searcher",
 		ServiceLabel:      "searcher",
@@ -121,12 +122,15 @@ var References = []ServiceScale{
 		PodName:           "searcher",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Replicas: 4, Value: AverageRepositoriesRange.Max}, // existing deployment: dogfood
-			{Replicas: 1, Value: AverageRepositoriesRange.Min}, // bare minimum
+			{Replicas: 10, Value: AverageRepositoriesRange.Max},
+			{Replicas: 2, Value: 500000},
+			{Replicas: 1, Value: AverageRepositoriesRange.Min},
 		},
 	},
 	// Searcher is IO and CPU bound. It fetches archives from gitserver and searches them with regexp.
 	// Memory scales based on the size of repositories (i.e. when large monorepos are in the picture).
+	// Formula for CPU - Add 2 CPU for every size up / number of replica
+	// Formula for MEM - Add 4 MEM for every size up / number of replica
 	{
 		ServiceName:       "searcher",
 		ServiceLabel:      "searcher",
@@ -134,10 +138,12 @@ var References = []ServiceScale{
 		PodName:           "searcher",
 		ScalingFactor:     ByAverageRepositories,
 		ReferencePoints: []Service{
-			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4, EPH: 440}, Limits: Resource{CPU: 6, MEM: 8, EPH: 480}}, Value: AverageRepositoriesRange.Max}, // estimate. eph based on dogfood
-			{Resources: Resources{Requests: Resource{CPU: 3, MEM: 4, EPH: 220}, Limits: Resource{CPU: 6, MEM: 8, EPH: 240}}, Value: 25000},                        // existing deployment: #4
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: 2, EPH: 37}, Limits: Resource{CPU: 2, MEM: 4, EPH: 38}}, Value: 4000},                          // existing deployment: #43
-			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 2, MEM: 2, EPH: 2}}, Value: AverageRepositoriesRange.Min},   // default
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 6, MEM: 8, EPH: 1000}}, Value: AverageRepositoriesRange.Max}, // estimate. eph based on dogfood
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 10, MEM: 16, EPH: 300}}, Value: 250000},                      // Size 2XL
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 8, MEM: 12, EPH: 200}}, Value: 100000},                       // Size XL
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 6, MEM: 8, EPH: 100}}, Value: 50000},                         // Size L
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 4, MEM: 4, EPH: 32}}, Value: 1000},                           // Size M
+			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5, EPH: 1}, Limits: Resource{CPU: 2, MEM: 4, EPH: 2}}, Value: AverageRepositoriesRange.Min},    // default / Size S
 		},
 	},
 

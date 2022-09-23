@@ -145,8 +145,8 @@ const (
 )
 
 var (
-	UsersRange               = Range{5, 10000}
-	RepositoriesRange        = Range{5, 50000}
+	UsersRange               = Range{5, 25000}
+	RepositoriesRange        = Range{5, 5000000}
 	TotalRepoSizeRange       = Range{1, 5000}
 	LargeMonoreposRange      = Range{0, 10}
 	LargestRepoSizeRange     = Range{0, 5000}
