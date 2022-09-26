@@ -18,14 +18,14 @@ func main() {
 	vecty.SetTitle("Resource estimator - Sourcegraph")
 	err := vecty.RenderInto("#root", &MainView{
 		deploymentType:    "type",
-		users:             300,
-		engagementRate:    100,
-		repositories:      3000,
-		reposize:          100,
-		largeMonorepos:    2,
-		largestRepoSize:   5,
-		largestIndexSize:  0,
-		codeinsightEabled: "Enable",
+		users:             300,      // Number of users
+		engagementRate:    100,      // TODO: Remove
+		repositories:      3000,     // Number of repos
+		reposize:          100,      //Total repo size
+		largeMonorepos:    0,        // TODO: Remove
+		largestRepoSize:   5,        // Size of the largest repo
+		largestIndexSize:  1,        // Size of the largest index file
+		codeinsightEabled: "Enable", // Code Insight
 	})
 	if err != nil {
 		panic(err)
@@ -43,6 +43,10 @@ type MainView struct {
 }
 
 func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
+	errorLabel := ""
+	if float64(value) > rnge.Max {
+		errorLabel = fmt.Sprint("- value must be lower than ", int(rnge.Max))
+	}
 	return elem.Label(
 		vecty.Markup(vecty.Style("margin-top", "10px")),
 		elem.Input(
@@ -54,11 +58,18 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 				vecty.Property("step", step),
 				vecty.Property("min", rnge.Min),
 				vecty.Property("max", rnge.Max),
+				vecty.MarkupIf(float64(value) > rnge.Max, vecty.Class("errorInput")),
+				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value == 0, vecty.Property("disabled", true)),
+				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value > 0, vecty.Property("disabled", false)),
 			),
 		),
 		elem.Div(
 			vecty.Markup(vecty.Class("post-label")),
 			vecty.Text(postLabel),
+		),
+		elem.Div(
+			vecty.Markup(vecty.Class("errorInput")),
+			vecty.Text(errorLabel),
 		),
 	)
 }
@@ -114,7 +125,8 @@ func (p *MainView) radioInput(groupName string, options []string, handler func(e
 func (p *MainView) inputs() vecty.ComponentOrHTML {
 	return vecty.List{
 		elem.Div(
-			vecty.Markup(vecty.Style("padding", "20px"),
+			vecty.Markup(
+				vecty.Style("padding", "20px"),
 				vecty.Style("border", "1px solid")),
 			p.radioInput("Deployment Type: ", []string{"docker-compose", "kubernetes"}, func(e *vecty.Event) {
 				p.deploymentType = e.Value.Get("target").Get("value").String()
@@ -124,22 +136,14 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.users, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.users, scaling.UsersRange, 1),
-			p.rangeInput(fmt.Sprint(p.engagementRate, "% engagement rate"), func(e *vecty.Event) {
-				p.engagementRate, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
-				vecty.Rerender(p)
-			}, p.engagementRate, scaling.EngagementRateRange, 5),
 			p.numberInput("repositories", func(e *vecty.Event) {
 				p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
-			}, p.repositories, scaling.RepositoriesRange, 5),
+			}, p.repositories, scaling.RepositoriesRange, 1),
 			p.numberInput("GB - the size of all repositories", func(e *vecty.Event) {
 				p.reposize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.reposize, scaling.TotalRepoSizeRange, 1),
-			p.rangeInput(fmt.Sprint(p.largeMonorepos, " monorepos (repository larger than 2GB)"), func(e *vecty.Event) {
-				p.largeMonorepos, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
-				vecty.Rerender(p)
-			}, p.largeMonorepos, scaling.LargeMonoreposRange, 1),
 			p.numberInput("GB - the size of the largest repository", func(e *vecty.Event) {
 				p.largestRepoSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
@@ -148,13 +152,21 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.codeinsightEabled = e.Value.Get("target").Get("value").String()
 				vecty.Rerender(p)
 			}),
+			p.radioInput("Precise Code Intelligence: ", []string{"Enable", "Disable"}, func(e *vecty.Event) {
+				if e.Value.Get("target").Get("value").String() == "Enable" {
+					p.largestIndexSize = 1
+				} else {
+					p.largestIndexSize = 0
+				}
+				vecty.Rerender(p)
+			}),
 			p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
 				p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1),
 			elem.Div(
 				vecty.Markup(vecty.Style("margin-top", "5px"), vecty.Style("font-size", "small")),
-				vecty.Text("Set value to 0 if precise code intelligence is disabled"),
+				vecty.Text("The minimum value is 1 when Precise Code Intelligence is enabled."),
 			),
 		),
 	}
@@ -184,7 +196,14 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 		&markdown{Content: markdownContent},
 		elem.Heading3(vecty.Text("Export result")),
 		elem.Details(
-			elem.Summary(vecty.Text("Export as Helm Override File (Beta)")),
+			elem.Summary(
+				elem.Span(
+					vecty.Markup(vecty.Class("badge")),
+					vecty.Markup(vecty.Class("badge-beta")),
+					vecty.Text("BETA"),
+				),
+				vecty.Text(" Export as Helm Override File"),
+			),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),
@@ -202,7 +221,7 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 			),
 		),
 		elem.Details(
-			elem.Summary(vecty.Text("Export as Docker Compose Override File (Beta)")),
+			elem.Summary(vecty.Text("Export as Docker Compose Override File")),
 			elem.Break(),
 			elem.TextArea(
 				vecty.Markup(vecty.Class("copy-as-markdown")),
@@ -228,13 +247,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 			),
 		),
 		elem.Break(),
-		elem.Paragraph(
-			elem.Strong(vecty.Text("Questions or concerns? ")),
-			elem.Anchor(
-				vecty.Markup(prop.Href("mailto:support@sourcegraph.com")),
-				vecty.Text("Get help from an engineer"),
-			),
-		),
 	)
 }
 

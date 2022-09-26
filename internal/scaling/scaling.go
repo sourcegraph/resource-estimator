@@ -1,14 +1,10 @@
 package scaling
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
 	"strings"
-
-	"github.com/ghodss/yaml"
 )
 
 type Factor int
@@ -100,8 +96,8 @@ func (r *Service) join(o *Service) {
 	if r.Resources.Requests.CPU == 0 && r.Resources.Limits.CPU == 0 {
 		r.Resources.Requests.CPU = resourceRound(o.Resources.Requests.CPU)
 		r.Resources.Limits.CPU = resourceRound(o.Resources.Limits.CPU)
-		r.Resources.Requests.CPUS = addUnit(r.Resources.Requests.CPU, "")
-		r.Resources.Limits.CPUS = addUnit(r.Resources.Limits.CPU, "")
+		r.Resources.Requests.CPUS = strings.ToLower(addUnit(r.Resources.Requests.CPU, ""))
+		r.Resources.Limits.CPUS = strings.ToLower(addUnit(r.Resources.Limits.CPU, ""))
 	}
 	if r.Resources.Requests.MEM == 0 && r.Resources.Limits.MEM == 0 {
 		r.Resources.Requests.MEM = resourceRound(o.Resources.Requests.MEM)
@@ -117,14 +113,15 @@ func (r *Service) join(o *Service) {
 	}
 	if o.Storage > 0 {
 		r.Storage = resourceRound(o.Storage)
-		r.PVC = addUnit(resourceRound(o.Storage/float64(r.Replicas)), "Gi")
+		r.PVC = addUnit(resourceRound(o.Storage), "Gi")
 	}
 	r.ContactSupport = r.ContactSupport || o.ContactSupport
 }
 
 func (d DockerResources) join(o *Service) DockerResources {
-	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*float64(o.Replicas), ""))
-	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*float64(o.Replicas), "g"))
+	replica := math.Max(float64(o.Replicas), 1)
+	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*replica, ""))
+	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*replica, "g"))
 	d.Storage = strings.ToLower(addUnit(o.Storage*float64(o.Replicas), "g"))
 	return d
 }
@@ -141,22 +138,19 @@ type Range struct {
 
 const (
 	// Heuristic which pretends 1 large monorepo == N average repositories.
-	MonorepoFactor = 50
+	MonorepoFactor = 1
 )
 
 var (
-	UsersRange               = Range{5, 10000}
-	RepositoriesRange        = Range{5, 50000}
-	TotalRepoSizeRange       = Range{1, 5000}
+	UsersRange               = Range{1, 50000}
+	RepositoriesRange        = Range{1, 5000000}
+	TotalRepoSizeRange       = Range{1, 50000000}
 	LargeMonoreposRange      = Range{0, 10}
-	LargestRepoSizeRange     = Range{0, 5000}
-	LargestIndexSizeRange    = Range{0, 100}
-	AverageRepositoriesRange = Range{
-		RepositoriesRange.Min + (LargeMonoreposRange.Min * MonorepoFactor),
-		RepositoriesRange.Max + (LargeMonoreposRange.Max * MonorepoFactor),
-	}
-	UserRepoSumRatioRange = Range{1, 200}
-	EngagementRateRange   = Range{5, 100}
+	LargestRepoSizeRange     = Range{0, 50000000}
+	LargestIndexSizeRange    = Range{1, 1000}
+	AverageRepositoriesRange = Range{1, 5000000}
+	UserRepoSumRatioRange    = Range{1, 5000}
+	EngagementRateRange      = Range{5, 100}
 )
 
 func init() {
@@ -233,15 +227,16 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	DeploymentType   string // calculated if set to "docker-compose"
-	CodeInsight      string // If Code Insight is enabled, add 1000 to user count
-	EngagementRate   int    // The percentage of users who use Sourcegraph regularly.
-	Repositories     int    // Number of repositories
-	LargeMonorepos   int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
-	LargestRepoSize  int    // Size of the largest repository in GB
-	LargestIndexSize int    // Size of the largest LSIF index file in GB
-	TotalRepoSize    int    // Size of all repositories
-	Users            int    // Number of users
+	DeploymentType            string // calculated if set to "docker-compose"
+	RecommendedDeploymentType string
+	CodeInsight               string // If Code Insight is enabled
+	EngagementRate            int    // The percentage of users who use Sourcegraph regularly.
+	Repositories              int    // Number of repositories
+	LargeMonorepos            int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
+	LargestRepoSize           int    // Size of the largest repository in GB
+	LargestIndexSize          int    // Size of the largest LSIF index file in GB
+	TotalRepoSize             int    // Size of all repositories
+	Users                     int    // Number of users
 
 	// calculated results
 	AverageRepositories int                        // Number of total repositories including monorepos: number repos + monorepos x 50
@@ -261,7 +256,7 @@ type Estimate struct {
 }
 
 func (e *Estimate) Calculate() *Estimate {
-	e.EngagedUsers = e.Users * e.EngagementRate / 100
+	e.EngagedUsers = e.Users
 	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*MonorepoFactor) / 1000
 	e.AverageRepositories = e.Repositories + e.LargeMonorepos*MonorepoFactor
 	e.Services = make(map[string]Service)
@@ -270,10 +265,7 @@ func (e *Estimate) Calculate() *Estimate {
 		var value float64
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
-			value = float64(e.EngagedUsers)
-			if e.CodeInsight == "Enable" {
-				value = float64(e.EngagedUsers + 1000)
-			}
+			value = float64(e.Users)
 		case ByAverageRepositories:
 			value = float64(e.AverageRepositories)
 		case ByLargeMonorepos:
@@ -296,22 +288,26 @@ func (e *Estimate) Calculate() *Estimate {
 		v.Label = ref.ServiceLabel
 		v.PodName = ref.PodName
 		v.NameInDocker = ref.DockerServiceName
-		// calculate storage size
-		var dockerFactor = 1
-		var k8sFactor = 0
-		if e.DeploymentType == "docker-compose" {
-			dockerFactor = 2
-			k8sFactor = 1
-		}
 		switch ref.ServiceName {
+		case "codeinsights-db":
+			if e.CodeInsight != "Enable" {
+				v.Storage = float64(0)
+			}
+		case "codeintel-db":
+			if e.LargestIndexSize == 0 {
+				v.Storage = float64(0)
+			}
+		case "searcher":
+			// MAX(Size of Largest + Size of All * 0.15, Size of All * 0.3)
+			v.Resources.Requests.EPH = math.Max(float64(e.LargestRepoSize)+float64(e.TotalRepoSize)*0.15, float64(e.TotalRepoSize)*0.3)
+			v.Resources.Limits.EPH = math.Max(float64(e.LargestRepoSize)+float64(e.TotalRepoSize)*0.3, float64(e.TotalRepoSize)*0.4)
 		case "gitserver":
-			v.Storage = float64(e.TotalRepoSize * 120 / 100)
+			// 30% More than the total repo size
+			v.Storage = float64(e.TotalRepoSize * 130 / 100)
 		case "minio":
 			v.Storage = float64(e.LargestIndexSize)
 		case "indexedSearch":
-			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor) // times 2 for docker compose deployment
-		case "indexedSearchIndexer":
-			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2 / dockerFactor * k8sFactor) // zero for k8s deployment
+			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2)
 		}
 		r := e.Services[ref.ServiceName]
 		(&r).join(&v)
@@ -367,180 +363,43 @@ func (e *Estimate) Calculate() *Estimate {
 		r := defaults[service][e.DeploymentType]
 		countRef(service, &r)
 	}
-	totalCPU := sumCPURequests + ((sumCPULimits - sumCPURequests) * 0.5)
-	totalMemoryGB := sumMemoryGBRequests + ((sumMemoryGBLimits - sumMemoryGBRequests) * 0.5)
+	e.RecommendedDeploymentType = "Docker Compose"
+	if e.EngagedUsers <= 500 {
+		e.TotalCPU = 8
+	} else if e.EngagedUsers <= 1000 {
+		e.TotalCPU = 16
+	} else if e.EngagedUsers <= 5000 {
+		e.TotalCPU = 32
+	} else if e.EngagedUsers <= 10000 {
+		e.TotalCPU = 48
+	} else if e.EngagedUsers <= 20000 {
+		e.TotalCPU = 96
+	} else if e.EngagedUsers <= 40000 {
+		e.TotalCPU = 192
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
+	} else {
+		e.TotalCPU = 260
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
+	}
+	if e.AverageRepositories <= 1000 {
+		e.TotalMemoryGB = 32
+	} else if e.AverageRepositories <= 10000 {
+		e.TotalMemoryGB = 64
+	} else if e.AverageRepositories <= 50000 {
+		e.TotalMemoryGB = 128
+	} else if e.AverageRepositories <= 100000 {
+		e.TotalMemoryGB = 192
+	} else if e.AverageRepositories <= 250000 {
+		e.TotalMemoryGB = 384
+	} else if e.AverageRepositories <= 500000 {
+		e.TotalMemoryGB = 768
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
+	} else {
+		e.TotalMemoryGB = 1000
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
+	}
 	e.TotalStorageSize = int(math.Ceil(sumStorageSize))
-	e.TotalCPU = int(math.Ceil(totalCPU))
-	e.TotalMemoryGB = int(math.Ceil(totalMemoryGB))
 	e.TotalSharedCPU = int(math.Ceil(largestCPULimit))
 	e.TotalSharedMemoryGB = int(math.Ceil(largestMemoryGBLimit))
 	return e
-}
-
-func (e *Estimate) MarkdownExport() []byte {
-	var buf bytes.Buffer
-	// Summary of the output
-	fmt.Fprintf(&buf, "### Estimate summary\n")
-	fmt.Fprintf(&buf, "\n")
-	if !e.ContactSupport {
-		fmt.Fprintf(&buf, "* **Estimated total CPUs:** %v\n", e.TotalCPU)
-		fmt.Fprintf(&buf, "* **Estimated total memory:** %vg\n", e.TotalMemoryGB)
-		fmt.Fprintf(&buf, "* **Estimated total storage:** %vg\n", e.TotalStorageSize)
-	} else {
-		fmt.Fprintf(&buf, "* **Estimated total CPUs:** not available\n")
-		fmt.Fprintf(&buf, "* **Estimated total memory:** not available\n")
-		fmt.Fprintf(&buf, "* **Estimated total storage:** not available\n")
-	}
-	fmt.Fprintf(&buf, "\n<small>**Note:** The estimated total includes default values for other services.</small>\n")
-	if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
-		if e.DeploymentType == "docker-compose" {
-			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
-			fmt.Fprintf(&buf, "  <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>\n")
-			fmt.Fprintf(&buf, "  <ul>\n")
-			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ CPUs (shared):** %v</li>\n", e.TotalSharedCPU)
-			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ memory (shared):** %vg</li>\n", e.TotalSharedMemoryGB)
-			fmt.Fprintf(&buf, "  </ul><br>\n")
-			fmt.Fprintf(&buf, "  <p>**What this means:** Your instance would not have enough resources for all services to run _at peak load_, and _sometimes_ this could lead to a lack of resources. This may appear as searches being slow for some users if many other requests or indexing jobs are ongoing.</p>\n")
-			fmt.Fprintf(&buf, "  <p>On small instances such as what you've chosen, this can often be OK -- just keep an eye out for any performance issues and increase resources as needed.</p>\n")
-			fmt.Fprintf(&buf, "  <p>To use shared resources, simply apply the limits shown below normally -- but only provision a machine with the resources shown above.</p>\n")
-			fmt.Fprintf(&buf, "  </blockquote></details>\n")
-		} else if e.DeploymentType == "kubernetes" {
-			fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
-			fmt.Fprintf(&buf, "  <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>\n")
-			fmt.Fprintf(&buf, "  <ul>\n")
-			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ CPUs (shared):** %v</li>\n", e.TotalSharedCPU)
-			fmt.Fprintf(&buf, "  <li>**Estimated total _shared_ memory (shared):** %vg</li>\n", e.TotalSharedMemoryGB)
-			fmt.Fprintf(&buf, "  </ul><br>\n")
-			fmt.Fprintf(&buf, "  <p>**What this means:** Your instance would not have enough resources for all services to run _at peak load_, and _sometimes_ this could lead to a lack of resources. This may appear as searches being slow for some users if many other requests or indexing jobs are ongoing.</p>\n")
-			fmt.Fprintf(&buf, "  <p>On small instances such as what you've chosen, this can often be OK -- just keep an eye out for any performance issues and increase resources as needed.</p>\n")
-			fmt.Fprintf(&buf, "  <p>To use shared resources, simply apply the \"limits\" shown below normally and remove or reduce the \"requests\" for each service.</p>\n")
-			fmt.Fprintf(&buf, "  </blockquote></details>\n")
-		}
-	}
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "\n")
-	if e.ContactSupport {
-		fmt.Fprintf(&buf, "> **IMPORTANT:** Please [contact support](mailto:support@sourcegraph.com) for the service(s) that marked as not available.\n")
-		fmt.Fprintf(&buf, "\n")
-	}
-	fmt.Fprintf(&buf, "| Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits | EPH requests | EPH limits | Storage |\n")
-	fmt.Fprintf(&buf, "|-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|\n")
-
-	var names []string
-	for service := range e.Services {
-		names = append(names, service)
-	}
-	sort.Strings(names)
-
-	for _, service := range names {
-		ref := e.Services[service]
-		def := defaults[service][e.DeploymentType]
-		plus := ""
-		serviceName := fmt.Sprint(ref.Label, "</br><small>(pod: ", ref.PodName, ")</small>")
-		replicas := "n/a"
-		cpuRequest := "n/a"
-		cpuLimit := "n/a"
-		memoryGBRequest := "n/a"
-		memoryGBLimit := "n/a"
-		ephRequest := "-"
-		ephLimit := "-"
-		pvc := "-"
-
-		if !ref.ContactSupport {
-			if e.DeploymentType == "docker-compose" {
-				serviceName = ref.NameInDocker
-				replicas = fmt.Sprint("1", plus)
-				cpuRequest = "-"
-				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU*float64(ref.Replicas), plus)
-				memoryGBRequest = "-"
-				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM*float64(ref.Replicas), "g", plus)
-				ephRequest = "-"
-				ephLimit = "-"
-				if ref.Storage > 0 {
-					pvc = fmt.Sprint(ref.Storage, "G", plus, "ꜝ")
-				}
-				if ref.Resources.Limits.EPH > 0 {
-					pvc = fmt.Sprint(ref.Resources.Limits.EPH, "G", plus, "ꜝ")
-				}
-			}
-			if e.DeploymentType == "kubernetes" {
-				replicas = fmt.Sprint(ref.Replicas, plus)
-				cpuRequest = fmt.Sprint(ref.Resources.Requests.CPU, plus)
-				cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU, plus)
-				memoryGBRequest = fmt.Sprint(ref.Resources.Requests.MEMS, plus)
-				memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEMS, plus)
-				if ref.Replicas != def.Replicas {
-					replicas += "ꜝ"
-				}
-				if ref.Resources.Requests.CPU != def.Resources.Requests.CPU {
-					cpuRequest += "ꜝ"
-				}
-				if ref.Resources.Requests.MEM != def.Resources.Requests.MEM {
-					memoryGBRequest += "ꜝ"
-				}
-				if ref.Storage > 0 {
-					pvc = fmt.Sprint(ref.PVC, plus, "ꜝ")
-				}
-				if ref.Resources.Limits.EPH > 0 {
-					ephRequest = fmt.Sprint(ref.Resources.Requests.EPHS, plus, "ꜝ")
-					ephLimit = fmt.Sprint(ref.Resources.Limits.EPHS, plus, "ꜝ")
-				}
-			}
-			if ref.Resources.Limits.CPU != def.Resources.Limits.CPU {
-				cpuLimit += "ꜝ"
-			}
-			if ref.Resources.Limits.MEM != def.Resources.Limits.MEM {
-				memoryGBLimit += "ꜝ"
-			}
-		}
-		fmt.Fprintf(
-			&buf,
-			"| %v | %v | %v | %v | %v | %v | %v | %v | %v |\n",
-			serviceName,
-			replicas,
-			cpuRequest,
-			cpuLimit,
-			memoryGBRequest,
-			memoryGBLimit,
-			ephRequest,
-			ephLimit,
-			pvc,
-		)
-	}
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "> ꜝ<small> This is a non-default value.</small>\n")
-	fmt.Fprintf(&buf, "\n")
-	fmt.Fprintf(&buf, "\n")
-
-	return buf.Bytes()
-}
-
-func (e *Estimate) HelmExport() string {
-	var c = e.Services
-	j, err := json.Marshal(c)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	y, err := yaml.JSONToYAML(j)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	s := strings.Replace(string(y), `"`, "'", -1)
-	return s
-}
-
-func (e *Estimate) DockerExport() string {
-	var d DockerServices
-	d.Version = "2.4"
-	d.Services = e.DockerServices
-	j, err := json.Marshal(d)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	y, err := yaml.JSONToYAML(j)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	s := strings.Replace(string(y), `"`, "", -1)
-	return s
 }
