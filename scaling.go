@@ -17,14 +17,14 @@ func main() {
 	vecty.SetTitle("Resource estimator - Sourcegraph")
 	err := vecty.RenderInto("#root", &MainView{
 		deploymentType:    "type",
-		users:             300,
-		engagementRate:    100,
-		repositories:      3000,
-		reposize:          100,
-		largeMonorepos:    2,
-		largestRepoSize:   5,
-		largestIndexSize:  1,
-		codeinsightEabled: "Enable",
+		users:             300,      // Number of users
+		engagementRate:    100,      // TODO: Remove
+		repositories:      3000,     // Number of repos
+		reposize:          100,      //Total repo size
+		largeMonorepos:    0,        // TODO: Remove
+		largestRepoSize:   5,        // Size of the largest repo
+		largestIndexSize:  1,        // Size of the largest index file
+		codeinsightEabled: "Enable", // Code Insight
 	})
 	if err != nil {
 		panic(err)
@@ -53,6 +53,7 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 				vecty.Property("step", step),
 				vecty.Property("min", rnge.Min),
 				vecty.Property("max", rnge.Max),
+				vecty.MarkupIf(float64(value) > rnge.Max, vecty.Class("error-input")),
 				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value == 0, vecty.Property("disabled", true)),
 				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value > 0, vecty.Property("disabled", false)),
 			),
@@ -129,7 +130,7 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 			p.numberInput("repositories", func(e *vecty.Event) {
 				p.repositories, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
-			}, p.repositories, scaling.RepositoriesRange, 5),
+			}, p.repositories, scaling.RepositoriesRange, 1),
 			p.numberInput("GB - the size of all repositories", func(e *vecty.Event) {
 				p.reposize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
@@ -237,13 +238,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 			),
 		),
 		elem.Break(),
-		elem.Paragraph(
-			elem.Strong(vecty.Text("Questions or concerns? ")),
-			elem.Anchor(
-				vecty.Markup(prop.Href("mailto:support@sourcegraph.com")),
-				vecty.Text("Get help from an engineer"),
-			),
-		),
 	)
 }
 

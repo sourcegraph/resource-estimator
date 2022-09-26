@@ -2,6 +2,7 @@ package scaling
 
 // We are using the data gathered from different existing deployments as references for the estimates:
 // https://docs.google.com/spreadsheets/d/1N7X_OXDwKk0QSR2Ghbj7ZhjVrQXcMNj-yC8mF1amBi4/edit?usp=sharing
+// TODO: UPDATE DATA REFERENCE LINK AND DISPLAY NEW & MISSING SERVICES
 
 var References = []ServiceScale{
 	{
@@ -57,8 +58,8 @@ var References = []ServiceScale{
 		PodName:           "minio",
 		ScalingFactor:     ByLargestIndexSize,
 		ReferencePoints: []Service{
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: LargestIndexSizeRange.Max, Value: LargestIndexSizeRange.Max},   // calculation
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: LargestIndexSizeRange.Min, Value: LargestIndexSizeRange.Min}, // bare minimum
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 1000, Value: LargestIndexSizeRange.Max}, // calculation
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: 1, Value: LargestIndexSizeRange.Min},  // bare minimum
 		},
 	},
 
@@ -109,8 +110,8 @@ var References = []ServiceScale{
 		PodName:           "redis",
 		ScalingFactor:     ByUserRepoSumRatio,
 		ReferencePoints: []Service{
-			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Value: UserRepoSumRatioRange.Max}, // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Value: UserRepoSumRatioRange.Min}, // bare minimum
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 1, MEM: 7}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UserRepoSumRatioRange.Max}, // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 100, Value: UserRepoSumRatioRange.Min}, // bare minimum
 		},
 	},
 	{
@@ -120,8 +121,8 @@ var References = []ServiceScale{
 		PodName:           "redis",
 		ScalingFactor:     ByEngagedUsers,
 		ReferencePoints: []Service{
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 7}}, Value: UsersRange.Max},  // estimate
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Value: UsersRange.Min}, // bare minimum
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 7}}, Storage: 100, Value: UsersRange.Max},  // estimate
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 100, Value: UsersRange.Min}, // bare minimum
 		},
 	},
 
@@ -322,7 +323,19 @@ var References = []ServiceScale{
 		ScalingFactor:     ByLargestIndexSize,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200, Value: LargestIndexSizeRange.Max}, // Enabled
-			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 0, Value: LargestIndexSizeRange.Min},   // Disabled
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200, Value: LargestIndexSizeRange.Min}, // Disabled
+		},
+	},
+	// Use default values
+	{
+		ServiceName:       "prometheus",
+		DockerServiceName: "prometheus",
+		ServiceLabel:      "prometheus",
+		PodName:           "prometheus",
+		ScalingFactor:     ByLargestIndexSize,
+		ReferencePoints: []Service{
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 6}, Limits: Resource{CPU: 2, MEM: 6}}, Storage: 200, Value: LargestIndexSizeRange.Max}, // Enabled
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 6}, Limits: Resource{CPU: 2, MEM: 6}}, Storage: 200, Value: LargestIndexSizeRange.Min}, // Disabled
 		},
 	},
 }
@@ -354,8 +367,8 @@ var defaults = map[string]map[string]Service{
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 128},
 	},
 	"github-proxy": {
-		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .1, MEM: .25}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 200},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}, Storage: 1},
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .1, MEM: .25}, Limits: Resource{CPU: 1, MEM: 1}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}},
 	},
 	"gitserver": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 8}, Limits: Resource{CPU: 4, MEM: 8}}, Storage: 200},
@@ -367,7 +380,11 @@ var defaults = map[string]map[string]Service{
 	},
 	"jaeger": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 1, MEM: 1}}},
-		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: .5, MEM: .512}}, Storage: 128},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: .5, MEM: .512}}},
+	},
+	"otel-collector": {
+		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 1}, Limits: Resource{CPU: 2, MEM: 3}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}},
 	},
 	"pgsql": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 4, MEM: 4}, Limits: Resource{CPU: 4, MEM: 4}}, Storage: 200},

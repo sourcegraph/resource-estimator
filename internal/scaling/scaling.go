@@ -146,13 +146,10 @@ var (
 	TotalRepoSizeRange       = Range{1, 50000000}
 	LargeMonoreposRange      = Range{0, 10}
 	LargestRepoSizeRange     = Range{0, 50000000}
-	LargestIndexSizeRange    = Range{0, 1000}
-	AverageRepositoriesRange = Range{
-		RepositoriesRange.Min + (LargeMonoreposRange.Min * MonorepoFactor),
-		RepositoriesRange.Max + (LargeMonoreposRange.Max * MonorepoFactor),
-	}
-	UserRepoSumRatioRange = Range{1, 5000}
-	EngagementRateRange   = Range{5, 100}
+	LargestIndexSizeRange    = Range{1, 1000}
+	AverageRepositoriesRange = Range{1, 5000000}
+	UserRepoSumRatioRange    = Range{1, 5000}
+	EngagementRateRange      = Range{5, 100}
 )
 
 func init() {
@@ -229,15 +226,16 @@ func orOne(v float64) float64 {
 
 type Estimate struct {
 	// inputs
-	DeploymentType   string // calculated if set to "docker-compose"
-	CodeInsight      string // If Code Insight is enabled
-	EngagementRate   int    // The percentage of users who use Sourcegraph regularly.
-	Repositories     int    // Number of repositories
-	LargeMonorepos   int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
-	LargestRepoSize  int    // Size of the largest repository in GB
-	LargestIndexSize int    // Size of the largest LSIF index file in GB
-	TotalRepoSize    int    // Size of all repositories
-	Users            int    // Number of users
+	DeploymentType            string // calculated if set to "docker-compose"
+	RecommendedDeploymentType string
+	CodeInsight               string // If Code Insight is enabled
+	EngagementRate            int    // The percentage of users who use Sourcegraph regularly.
+	Repositories              int    // Number of repositories
+	LargeMonorepos            int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
+	LargestRepoSize           int    // Size of the largest repository in GB
+	LargestIndexSize          int    // Size of the largest LSIF index file in GB
+	TotalRepoSize             int    // Size of all repositories
+	Users                     int    // Number of users
 
 	// calculated results
 	AverageRepositories int                        // Number of total repositories including monorepos: number repos + monorepos x 50
@@ -257,7 +255,7 @@ type Estimate struct {
 }
 
 func (e *Estimate) Calculate() *Estimate {
-	e.EngagedUsers = e.Users * e.EngagementRate / 100
+	e.EngagedUsers = e.Users
 	e.UserRepoSumRatio = (e.Users + e.Repositories + e.LargeMonorepos*MonorepoFactor) / 1000
 	e.AverageRepositories = e.Repositories + e.LargeMonorepos*MonorepoFactor
 	e.Services = make(map[string]Service)
@@ -266,7 +264,7 @@ func (e *Estimate) Calculate() *Estimate {
 		var value float64
 		switch ref.ScalingFactor {
 		case ByEngagedUsers:
-			value = float64(e.EngagedUsers)
+			value = float64(e.Users)
 		case ByAverageRepositories:
 			value = float64(e.AverageRepositories)
 		case ByLargeMonorepos:
@@ -294,12 +292,16 @@ func (e *Estimate) Calculate() *Estimate {
 			if e.CodeInsight != "Enable" {
 				v.Storage = float64(0)
 			}
+		case "codeintel-db":
+			if e.LargestIndexSize == 0 {
+				v.Storage = float64(0)
+			}
 		case "gitserver":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100)
 		case "minio":
 			v.Storage = float64(e.LargestIndexSize)
 		case "indexedSearch":
-			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2) // times 2 for docker compose deployment
+			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2)
 		}
 		r := e.Services[ref.ServiceName]
 		(&r).join(&v)
@@ -355,20 +357,23 @@ func (e *Estimate) Calculate() *Estimate {
 		r := defaults[service][e.DeploymentType]
 		countRef(service, &r)
 	}
-	if e.EngagedUsers >= 30000 {
-		e.TotalCPU = 192
-	} else if e.AverageRepositories >= 20000 {
-		e.TotalCPU = 96
-	} else if e.AverageRepositories >= 10000 {
-		e.TotalCPU = 48
-	} else if e.AverageRepositories >= 5000 {
-		e.TotalCPU = 32
-	} else if e.AverageRepositories >= 1000 {
-		e.TotalCPU = 16
-	} else if e.AverageRepositories >= 500 {
+	e.RecommendedDeploymentType = "Docker Compose"
+	if e.EngagedUsers <= 500 {
+		e.RecommendedDeploymentType = "Kubernetes"
 		e.TotalCPU = 8
+	} else if e.EngagedUsers <= 1000 {
+		e.TotalCPU = 16
+	} else if e.EngagedUsers <= 5000 {
+		e.TotalCPU = 32
+	} else if e.EngagedUsers <= 10000 {
+		e.TotalCPU = 48
+	} else if e.EngagedUsers <= 20000 {
+		e.TotalCPU = 96
+	} else if e.EngagedUsers <= 40000 {
+		e.TotalCPU = 192
 	} else {
-		e.TotalCPU = 0
+		e.TotalCPU = 260
+		e.RecommendedDeploymentType = "Kubernete"
 	}
 	if e.AverageRepositories <= 1000 {
 		e.TotalMemoryGB = 32
@@ -382,8 +387,10 @@ func (e *Estimate) Calculate() *Estimate {
 		e.TotalMemoryGB = 384
 	} else if e.AverageRepositories <= 500000 {
 		e.TotalMemoryGB = 768
+		e.RecommendedDeploymentType = "Kubernetes"
 	} else {
-		e.TotalMemoryGB = 0
+		e.TotalMemoryGB = 1000
+		e.RecommendedDeploymentType = "Kubernetes"
 	}
 	e.TotalStorageSize = int(math.Ceil(sumStorageSize))
 	e.TotalSharedCPU = int(math.Ceil(largestCPULimit))
