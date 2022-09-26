@@ -2,8 +2,8 @@
 
 * **Estimated vCPUs:** 8
 * **Estimated Memory:** 32g
-* **Estimated Minimum Volume Size:** 1313g
-* **Recommend Deployment Type:** Kubernetes
+* **Estimated Minimum Volume Size:** 1316g
+* **Recommend Deployment Type:** Docker Compose
 
 <small>**Note:** The estimated values include default values for services that are not listed in the estimator, like otel-collector and repo-updater for example. The default values for the non-displaying services should work well with instances of all sizes.</small>
 * <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>
@@ -23,7 +23,7 @@
 | **codeinsights-db** | 1 | - | 4 | - | 4g | 200Gꜝ |
 | **codeintel-db** | 1 | - | 4 | - | 4g | 200Gꜝ |
 | **sourcegraph-frontend-0** | 1 | - | 2 | - | 4g | - |
-| **gitserver-0** | 1 | - | 4 | - | 4g | 36Gꜝ |
+| **gitserver-0** | 1 | - | 4 | - | 4g | 39Gꜝ |
 | **zoekt-indexserver-0** | 1 | - | 8 | - | 8g | 18Gꜝ |
 | **zoekt-webserver-0** | 1 | - | 2 | - | 4g | - |
 | **minio** | 1 | - | 1 | - | 0.5g | 1Gꜝ |
@@ -32,8 +32,8 @@
 | **prometheus** | 1 | - | 2 | - | 6g | 200Gꜝ |
 | **redis-cache** | 1 | - | 1 | - | 1g | 100Gꜝ |
 | **redis-store** | 1 | - | 1 | - | 1g | 100Gꜝ |
-| **searcher-0** | 1 | - | 3 | - | 3g | - |
-| **symbols-0** | 1 | - | 2 | - | 4g | 3Gꜝ |
+| **searcher-0** | 1 | - | 3 | - | 3g | 12Gꜝ |
+| **symbols-0** | 1 | - | 2 | - | 4g | 2Gꜝ |
 | **syntect-server** | 1 | - | 4 | - | 6g | - |
 | **worker** | 1 | - | 2 | - | 4g | - |
 

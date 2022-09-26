@@ -96,8 +96,8 @@ func (r *Service) join(o *Service) {
 	if r.Resources.Requests.CPU == 0 && r.Resources.Limits.CPU == 0 {
 		r.Resources.Requests.CPU = resourceRound(o.Resources.Requests.CPU)
 		r.Resources.Limits.CPU = resourceRound(o.Resources.Limits.CPU)
-		r.Resources.Requests.CPUS = addUnit(r.Resources.Requests.CPU, "")
-		r.Resources.Limits.CPUS = addUnit(r.Resources.Limits.CPU, "")
+		r.Resources.Requests.CPUS = strings.ToLower(addUnit(r.Resources.Requests.CPU, ""))
+		r.Resources.Limits.CPUS = strings.ToLower(addUnit(r.Resources.Limits.CPU, ""))
 	}
 	if r.Resources.Requests.MEM == 0 && r.Resources.Limits.MEM == 0 {
 		r.Resources.Requests.MEM = resourceRound(o.Resources.Requests.MEM)
@@ -119,8 +119,9 @@ func (r *Service) join(o *Service) {
 }
 
 func (d DockerResources) join(o *Service) DockerResources {
-	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*float64(o.Replicas), ""))
-	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*float64(o.Replicas), "g"))
+	replica := math.Max(float64(o.Replicas), 1)
+	d.CPU = strings.ToLower(addUnit(o.Resources.Requests.CPU*replica, ""))
+	d.MEM = strings.ToLower(addUnit(o.Resources.Limits.MEM*replica, "g"))
 	d.Storage = strings.ToLower(addUnit(o.Storage*float64(o.Replicas), "g"))
 	return d
 }
@@ -301,7 +302,8 @@ func (e *Estimate) Calculate() *Estimate {
 			v.Resources.Requests.EPH = math.Max(float64(e.LargestRepoSize)+float64(e.TotalRepoSize)*0.15, float64(e.TotalRepoSize)*0.3)
 			v.Resources.Limits.EPH = math.Max(float64(e.LargestRepoSize)+float64(e.TotalRepoSize)*0.3, float64(e.TotalRepoSize)*0.4)
 		case "gitserver":
-			v.Storage = float64(e.TotalRepoSize * 120 / 100)
+			// 30% More than the total repo size
+			v.Storage = float64(e.TotalRepoSize * 130 / 100)
 		case "minio":
 			v.Storage = float64(e.LargestIndexSize)
 		case "indexedSearch":
