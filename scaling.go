@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/hexops/vecty"
@@ -42,6 +43,10 @@ type MainView struct {
 }
 
 func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
+	errorLabel := ""
+	if float64(value) > rnge.Max {
+		errorLabel = fmt.Sprint("- value must be lower than ", int(rnge.Max))
+	}
 	return elem.Label(
 		vecty.Markup(vecty.Style("margin-top", "10px")),
 		elem.Input(
@@ -53,7 +58,7 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 				vecty.Property("step", step),
 				vecty.Property("min", rnge.Min),
 				vecty.Property("max", rnge.Max),
-				vecty.MarkupIf(float64(value) > rnge.Max, vecty.Class("error-input")),
+				vecty.MarkupIf(float64(value) > rnge.Max, vecty.Class("errorInput")),
 				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value == 0, vecty.Property("disabled", true)),
 				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value > 0, vecty.Property("disabled", false)),
 			),
@@ -61,6 +66,10 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 		elem.Div(
 			vecty.Markup(vecty.Class("post-label")),
 			vecty.Text(postLabel),
+		),
+		elem.Div(
+			vecty.Markup(vecty.Class("errorInput")),
+			vecty.Text(errorLabel),
 		),
 	)
 }
