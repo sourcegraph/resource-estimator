@@ -296,6 +296,10 @@ func (e *Estimate) Calculate() *Estimate {
 			if e.LargestIndexSize == 0 {
 				v.Storage = float64(0)
 			}
+		case "searcher":
+			// MAX(Size of Largest + Size of All * 0.15, Size of All * 0.3)
+			v.Resources.Requests.EPH = math.Max(float64(e.LargestRepoSize)+float64(e.TotalRepoSize)*0.15, float64(e.TotalRepoSize)*0.3)
+			v.Resources.Limits.EPH = math.Max(float64(e.LargestRepoSize)+float64(e.TotalRepoSize)*0.3, float64(e.TotalRepoSize)*0.4)
 		case "gitserver":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100)
 		case "minio":
@@ -359,7 +363,6 @@ func (e *Estimate) Calculate() *Estimate {
 	}
 	e.RecommendedDeploymentType = "Docker Compose"
 	if e.EngagedUsers <= 500 {
-		e.RecommendedDeploymentType = "Kubernetes"
 		e.TotalCPU = 8
 	} else if e.EngagedUsers <= 1000 {
 		e.TotalCPU = 16
@@ -371,9 +374,10 @@ func (e *Estimate) Calculate() *Estimate {
 		e.TotalCPU = 96
 	} else if e.EngagedUsers <= 40000 {
 		e.TotalCPU = 192
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
 	} else {
 		e.TotalCPU = 260
-		e.RecommendedDeploymentType = "Kubernete"
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
 	}
 	if e.AverageRepositories <= 1000 {
 		e.TotalMemoryGB = 32
@@ -387,10 +391,10 @@ func (e *Estimate) Calculate() *Estimate {
 		e.TotalMemoryGB = 384
 	} else if e.AverageRepositories <= 500000 {
 		e.TotalMemoryGB = 768
-		e.RecommendedDeploymentType = "Kubernetes"
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
 	} else {
 		e.TotalMemoryGB = 1000
-		e.RecommendedDeploymentType = "Kubernetes"
+		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
 	}
 	e.TotalStorageSize = int(math.Ceil(sumStorageSize))
 	e.TotalSharedCPU = int(math.Ceil(largestCPULimit))

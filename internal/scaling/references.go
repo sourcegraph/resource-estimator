@@ -151,6 +151,18 @@ var References = []ServiceScale{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 2}}, Value: AverageRepositoriesRange.Min}, // default
 		},
 	},
+	{
+		ServiceName:       "searcher",
+		ServiceLabel:      "searcher",
+		DockerServiceName: "searcher-0",
+		PodName:           "searcher",
+		ScalingFactor:     ByLargestRepoSize,
+		ReferencePoints: []Service{
+			{Resources: Resources{Requests: Resource{EPH: LargestRepoSizeRange.Max}, Limits: Resource{EPH: LargestRepoSizeRange.Max}}, Value: LargestRepoSizeRange.Max},
+			{Resources: Resources{Requests: Resource{EPH: 50000}, Limits: Resource{EPH: 50000}}, Value: 50000},
+			{Resources: Resources{Requests: Resource{EPH: LargestRepoSizeRange.Min}, Limits: Resource{EPH: LargestRepoSizeRange.Min}}, Value: LargestRepoSizeRange.Min}, // bare minimum
+		},
+	},
 
 	// Symbols replicas scale based on the number of average repositories, and its resources scale
 	// based on the size of repositories (i.e. when large monorepos are in the picture).
@@ -185,7 +197,6 @@ var References = []ServiceScale{
 			{Resources: Resources{Requests: Resource{CPU: .5, MEM: .5}, Limits: Resource{CPU: 2, MEM: 4}}, Value: AverageRepositoriesRange.Min}, // default
 		},
 	},
-	// TODO
 	{
 		ServiceName:       "symbols",
 		ServiceLabel:      "symbols",
@@ -193,13 +204,9 @@ var References = []ServiceScale{
 		PodName:           "symbols",
 		ScalingFactor:     ByLargestRepoSize,
 		ReferencePoints: []Service{
-			{Resources: Resources{Requests: Resource{EPH: 50000000}, Limits: Resource{EPH: 60000000}}, Value: LargestRepoSizeRange.Max}, // calculation
-			{Resources: Resources{Requests: Resource{EPH: 50000}, Limits: Resource{EPH: 60000}}, Value: 50000},                          // calculation
-			{Resources: Resources{Requests: Resource{EPH: 100}, Limits: Resource{EPH: 120}}, Value: 100},                                // calculation
-			{Resources: Resources{Requests: Resource{EPH: 50}, Limits: Resource{EPH: 60}}, Value: 50},                                   // calculation
-			{Resources: Resources{Requests: Resource{EPH: 5}, Limits: Resource{EPH: 6}}, Value: 5},                                      // calculation
-			{Resources: Resources{Requests: Resource{EPH: 2}, Limits: Resource{EPH: 3}}, Value: 2},                                      // calculation
-			{Resources: Resources{Requests: Resource{EPH: 1}, Limits: Resource{EPH: 2}}, Value: LargestRepoSizeRange.Min},               // bare minimum
+			{Resources: Resources{Requests: Resource{EPH: LargestRepoSizeRange.Max * 1.2}, Limits: Resource{EPH: LargestRepoSizeRange.Max * 1.5}}, Value: LargestRepoSizeRange.Max}, // calculation
+			{Resources: Resources{Requests: Resource{EPH: 50000 * 1.2}, Limits: Resource{EPH: 50000 * 1.5}}, Value: 50000},                                                          // calculation
+			{Resources: Resources{Requests: Resource{EPH: 1 * 1.2}, Limits: Resource{EPH: LargestRepoSizeRange.Min * 1.5}}, Value: LargestRepoSizeRange.Min},                        // bare minimum
 		},
 	},
 
