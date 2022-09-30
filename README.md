@@ -6,11 +6,12 @@ This tool ensures you provision appropriate resources to scale your instance.
 
 ## Development Prerequisites
 
-- [Install Go](https://golang.org/doc/install), then:
+- [Install Go](https://golang.org/doc/install)
+- [Install WasmServe](https://github.com/hajimehoshi/wasmserve)
 
 ### Optional prerequisites
 
-The project includes a [justfile](https://github.com/sourcegraph/infrastructure/blob/main/justfile) that includes simple
+The project includes a [justfile](https://github.com/sourcegraph/resource-estimator/blob/main/justfile) that includes simple
 commands for automating common tasks such as:
 
 - Building the WASM binary: `just build`
