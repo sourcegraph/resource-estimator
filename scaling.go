@@ -46,6 +46,7 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 	errorLabel := ""
 	if float64(value) > rnge.Max {
 		errorLabel = fmt.Sprint("- value must be lower than ", int(rnge.Max))
+		value = 0
 	}
 	return elem.Label(
 		vecty.Markup(vecty.Style("margin-top", "10px")),
@@ -59,7 +60,6 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 				vecty.Property("min", rnge.Min),
 				vecty.Property("max", rnge.Max),
 				vecty.MarkupIf(float64(value) > rnge.Max, vecty.Class("errorInput")),
-				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value == 0, vecty.Property("disabled", true)),
 				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value > 0, vecty.Property("disabled", false)),
 			),
 		),

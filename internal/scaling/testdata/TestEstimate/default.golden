@@ -1,9 +1,10 @@
 `### Estimate summary
 
+* **Instance Size:** XS
 * **Estimated vCPUs:** 8
 * **Estimated Memory:** 32g
 * **Estimated Minimum Volume Size:** 1316g
-* **Recommend Deployment Type:** Docker Compose
+* **Recommend Deployment Type:** Sourcegraph Machine Images
 
 <small>**Note:** The estimated values include default values for services that are not listed in the estimator, like otel-collector and repo-updater for example. The default values for the non-displaying services should work well with instances of all sizes.</small>
 * <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>
@@ -20,13 +21,13 @@
 
 | Service | Replica | CPU requests | CPU limits | MEM requests | MEM limits  | Storage |
 |-------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
+| **blobstore** | 1 | - | 1 | - | 0.5g | 1Gꜝ |
 | **codeinsights-db** | 1 | - | 4 | - | 4g | 200Gꜝ |
 | **codeintel-db** | 1 | - | 4 | - | 4g | 200Gꜝ |
 | **sourcegraph-frontend-0** | 1 | - | 2 | - | 4g | - |
 | **gitserver-0** | 1 | - | 4 | - | 4g | 39Gꜝ |
 | **zoekt-indexserver-0** | 1 | - | 8 | - | 8g | 18Gꜝ |
 | **zoekt-webserver-0** | 1 | - | 2 | - | 4g | - |
-| **minio** | 1 | - | 1 | - | 0.5g | 1Gꜝ |
 | **pgsql** | 1 | - | 4 | - | 4g | 200Gꜝ |
 | **precise-code-intel-worker** | 1 | - | 2 | - | 4g | - |
 | **prometheus** | 1 | - | 2 | - | 6g | 200Gꜝ |

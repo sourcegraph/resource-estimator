@@ -245,7 +245,7 @@ type Estimate struct {
 	Services            map[string]Service         // List of services output
 	DockerServices      map[string]DockerResources // List of services output for docker compose
 	UserRepoSumRatio    int                        // The ratio used to determine deployment size:  (user count + average repos count) / 1000
-
+	InstanceSize        string                     // Size of the deployment/instance
 	// These fields are the sum of the _requests_ of all services in the deployment, plus 50% of
 	// the difference in limits. The thinking is that requests are often far too low as they do not
 	// describe peak load of the service, and limits are often far too high
@@ -304,7 +304,7 @@ func (e *Estimate) Calculate() *Estimate {
 		case "gitserver":
 			// 30% More than the total repo size
 			v.Storage = float64(e.TotalRepoSize * 130 / 100)
-		case "minio":
+		case "blobstore":
 			v.Storage = float64(e.LargestIndexSize)
 		case "indexedSearch":
 			v.Storage = float64(e.TotalRepoSize * 120 / 100 / 2)
@@ -363,39 +363,53 @@ func (e *Estimate) Calculate() *Estimate {
 		r := defaults[service][e.DeploymentType]
 		countRef(service, &r)
 	}
-	e.RecommendedDeploymentType = "Docker Compose"
+	e.RecommendedDeploymentType = "Sourcegraph Machine Images"
 	if e.EngagedUsers <= 500 {
 		e.TotalCPU = 8
+		e.InstanceSize = "XS"
 	} else if e.EngagedUsers <= 1000 {
 		e.TotalCPU = 16
+		e.InstanceSize = "S"
 	} else if e.EngagedUsers <= 5000 {
 		e.TotalCPU = 32
+		e.InstanceSize = "M"
 	} else if e.EngagedUsers <= 10000 {
 		e.TotalCPU = 48
+		e.InstanceSize = "L"
 	} else if e.EngagedUsers <= 20000 {
 		e.TotalCPU = 96
+		e.InstanceSize = "XL"
 	} else if e.EngagedUsers <= 40000 {
 		e.TotalCPU = 192
 		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
+		e.InstanceSize = "2XL"
 	} else {
 		e.TotalCPU = 260
+		e.InstanceSize = "3XL"
 		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
 	}
-	if e.AverageRepositories <= 1000 {
+	if e.AverageRepositories <= 5000 {
 		e.TotalMemoryGB = 32
+		e.InstanceSize = "XS"
 	} else if e.AverageRepositories <= 10000 {
 		e.TotalMemoryGB = 64
+		e.InstanceSize = "S"
 	} else if e.AverageRepositories <= 50000 {
 		e.TotalMemoryGB = 128
+		e.InstanceSize = "M"
 	} else if e.AverageRepositories <= 100000 {
 		e.TotalMemoryGB = 192
+		e.InstanceSize = "L"
 	} else if e.AverageRepositories <= 250000 {
 		e.TotalMemoryGB = 384
+		e.InstanceSize = "XL"
 	} else if e.AverageRepositories <= 500000 {
 		e.TotalMemoryGB = 768
+		e.InstanceSize = "2XL"
 		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
 	} else {
 		e.TotalMemoryGB = 1000
+		e.InstanceSize = "3XL"
 		e.RecommendedDeploymentType = "Kubernetes with auto-scaling enabled"
 	}
 	e.TotalStorageSize = int(math.Ceil(sumStorageSize))

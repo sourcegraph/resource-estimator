@@ -18,6 +18,7 @@ func (e *Estimate) MarkdownExport() []byte {
 	if e.ContactSupport {
 		fmt.Fprintf(&buf, "**Estimation is currently not available for your instance size. Please [contact support](mailto:support@sourcegraph.com) for further assists.**\n")
 	} else {
+		fmt.Fprintf(&buf, "* **Instance Size:** %v\n", e.InstanceSize)
 		fmt.Fprintf(&buf, "* **Estimated vCPUs:** %v\n", e.TotalCPU)
 		fmt.Fprintf(&buf, "* **Estimated Memory:** %vg\n", e.TotalMemoryGB)
 		fmt.Fprintf(&buf, "* **Estimated Minimum Volume Size:** %vg\n", e.TotalStorageSize)
