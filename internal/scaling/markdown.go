@@ -18,10 +18,11 @@ func (e *Estimate) MarkdownExport() []byte {
 	if e.ContactSupport {
 		fmt.Fprintf(&buf, "**Estimation is currently not available for your instance size. Please [contact support](mailto:support@sourcegraph.com) for further assists.**\n")
 	} else {
+		fmt.Fprintf(&buf, "* **Instance Size:** %v\n", e.InstanceSize)
 		fmt.Fprintf(&buf, "* **Estimated vCPUs:** %v\n", e.TotalCPU)
 		fmt.Fprintf(&buf, "* **Estimated Memory:** %vg\n", e.TotalMemoryGB)
 		fmt.Fprintf(&buf, "* **Estimated Minimum Volume Size:** %vg\n", e.TotalStorageSize)
-		fmt.Fprintf(&buf, "* **Recommend Deployment Type:** %v\n", e.RecommendedDeploymentType)
+		fmt.Fprintf(&buf, "* **Recommend Deployment Type:** [%v](https://docs.sourcegraph.com/admin/deploy#deployment-types)\n", e.RecommendedDeploymentType)
 
 		fmt.Fprintf(&buf, "\n<small>**Note:** The estimated values include default values for services that are not listed in the estimator, like otel-collector and repo-updater for example. The default values for the non-displaying services should work well with instances of all sizes.</small>\n")
 		if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {

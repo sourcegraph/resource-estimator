@@ -52,10 +52,10 @@ var References = []ServiceScale{
 		},
 	},
 	{
-		ServiceName:       "minio",
-		ServiceLabel:      "minio",
-		DockerServiceName: "minio",
-		PodName:           "minio",
+		ServiceName:       "blobstore",
+		ServiceLabel:      "blobstore",
+		DockerServiceName: "blobstore",
+		PodName:           "blobstore",
 		ScalingFactor:     ByLargestIndexSize,
 		ReferencePoints: []Service{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: 1}, Limits: Resource{CPU: 1, MEM: 1}}, Storage: 1000, Value: LargestIndexSizeRange.Max}, // calculation
@@ -405,7 +405,7 @@ var defaults = map[string]map[string]Service{
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 6}, Limits: Resource{CPU: 2, MEM: 6}}, Storage: 200},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 4, MEM: 8}}, Storage: 200},
 	},
-	"minio": {
+	"blobstore": {
 		"kubernetes":     Service{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 1, MEM: .5}, Limits: Resource{CPU: 1, MEM: .5}}, Storage: 100},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 1, MEM: 1}}, Storage: 128},
 	},
