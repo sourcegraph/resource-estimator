@@ -148,26 +148,18 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.largestRepoSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestRepoSize, scaling.LargestRepoSizeRange, 1),
-			p.radioInput("Code Insights: ", []string{"Enable", "Disable"}, func(e *vecty.Event) {
-				p.codeinsightEabled = e.Value.Get("target").Get("value").String()
-				vecty.Rerender(p)
-			}),
-			p.radioInput("Precise Code Intelligence: ", []string{"Enable", "Disable"}, func(e *vecty.Event) {
-				if e.Value.Get("target").Get("value").String() == "Enable" {
-					p.largestIndexSize = 1
-				} else {
-					p.largestIndexSize = 0
-				}
-				vecty.Rerender(p)
-			}),
 			p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
 				p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1),
 			elem.Div(
 				vecty.Markup(vecty.Style("margin-top", "5px"), vecty.Style("font-size", "small")),
-				vecty.Text("The minimum value is 1 when Precise Code Intelligence is enabled."),
+				vecty.Text("Note: Set the value above to 0 to disable Precise Code Intelligence."),
 			),
+			p.radioInput("Code Insights: ", []string{"Enable", "Disable"}, func(e *vecty.Event) {
+				p.codeinsightEabled = e.Value.Get("target").Get("value").String()
+				vecty.Rerender(p)
+			}),
 		),
 	}
 }
@@ -188,7 +180,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 
 	markdownContent := estimate.MarkdownExport()
 	helmContent := estimate.HelmExport()
-	dockerContent := estimate.DockerExport()
 
 	return elem.Form(
 		vecty.Markup(vecty.Class("estimator")),
@@ -217,24 +208,6 @@ func (p *MainView) Render() vecty.ComponentOrHTML {
 						vecty.Property("download", "override.yaml"),
 					),
 					vecty.Text("override.yaml"),
-				),
-			),
-		),
-		elem.Details(
-			elem.Summary(vecty.Text("Export as Docker Compose Override File")),
-			elem.Break(),
-			elem.TextArea(
-				vecty.Markup(vecty.Class("copy-as-markdown")),
-				vecty.Text(dockerContent),
-			),
-			elem.Paragraph(
-				elem.Strong(vecty.Text("Click to Download: ")),
-				elem.Anchor(
-					vecty.Markup(
-						vecty.Markup(prop.Href("data:text/csv;charset=utf-8,"+dockerContent)),
-						vecty.Property("download", "docker-compose.override.yaml"),
-					),
-					vecty.Text("docker-compose.override.yaml"),
 				),
 			),
 		),

@@ -4,7 +4,7 @@
 * **Estimated vCPUs:** 8
 * **Estimated Memory:** 32g
 * **Estimated Minimum Volume Size:** 1316g
-* **Recommend Deployment Type:** Sourcegraph Machine Images
+* **Recommend Deployment Type:** [Sourcegraph Machine Images](https://docs.sourcegraph.com/admin/deploy#deployment-types)
 
 <small>**Note:** The estimated values include default values for services that are not listed in the estimator, like otel-collector and repo-updater for example. The default values for the non-displaying services should work well with instances of all sizes.</small>
 * <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>

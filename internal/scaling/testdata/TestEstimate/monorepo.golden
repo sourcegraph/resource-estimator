@@ -4,7 +4,7 @@
 * **Estimated vCPUs:** 192
 * **Estimated Memory:** 32g
 * **Estimated Minimum Volume Size:** 1316g
-* **Recommend Deployment Type:** Kubernetes with auto-scaling enabled
+* **Recommend Deployment Type:** [Kubernetes with auto-scaling enabled](https://docs.sourcegraph.com/admin/deploy#deployment-types)
 
 <small>**Note:** The estimated values include default values for services that are not listed in the estimator, like otel-collector and repo-updater for example. The default values for the non-displaying services should work well with instances of all sizes.</small>
 
