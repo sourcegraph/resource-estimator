@@ -8,6 +8,8 @@ github.com/hajimehoshi/wasmserve v0.0.0-20220920031344-5307a095c2aa h1:x7QoFaUjW
 github.com/hajimehoshi/wasmserve v0.0.0-20220920031344-5307a095c2aa/go.mod h1:R7GWZ4rfKerxj6MG5yspAk5BEI7j0IgeIQqncBraNRg=
 github.com/hajimehoshi/wasmserve v0.0.0-20221128151022-689d7ac772c6 h1:mt245kCFCBtpmDv715XGr/1lb8xAKWFeh9lzyUN03Gw=
 github.com/hajimehoshi/wasmserve v0.0.0-20221128151022-689d7ac772c6/go.mod h1:R7GWZ4rfKerxj6MG5yspAk5BEI7j0IgeIQqncBraNRg=
+github.com/hajimehoshi/wasmserve v1.2.1 h1:ouvhXaQCC/Mst600ib2wz3JBVyWRKPToRn+mirTaWu4=
+github.com/hajimehoshi/wasmserve v1.2.1/go.mod h1:R7GWZ4rfKerxj6MG5yspAk5BEI7j0IgeIQqncBraNRg=
 github.com/hexops/autogold v0.8.1/go.mod h1:97HLDXyG23akzAoRYJh/2OBs3kd80eHyKPvZw0S5ZBY=
 github.com/hexops/autogold v1.3.0 h1:IEtGNPxBeBu8RMn8eKWh/Ll9dVNgSnJ7bp/qHgMQ14o=
 github.com/hexops/autogold v1.3.0/go.mod h1:d4hwi2rid66Sag+BVuHgwakW/EmaFr8vdTSbWDbrDRI=

@@ -3,7 +3,7 @@ module github.com/sourcegraph/resource-estimator
 go 1.18
 
 require (
-	github.com/hajimehoshi/wasmserve v0.0.0-20221128151022-689d7ac772c6
+	github.com/hajimehoshi/wasmserve v1.2.1
 	github.com/hexops/autogold v1.3.0
 	github.com/hexops/vecty v0.6.0
 	github.com/microcosm-cc/bluemonday v1.0.2
