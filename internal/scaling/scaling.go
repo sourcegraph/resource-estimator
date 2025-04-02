@@ -234,7 +234,7 @@ type Estimate struct {
 	Repositories              int    // Number of repositories
 	LargeMonorepos            int    // Number of monorepos - repos that are larger than 2GB (~50 times larger than the average size repo)
 	LargestRepoSize           int    // Size of the largest repository in GB
-	LargestIndexSize          int    // Size of the largest LSIF index file in GB
+	LargestIndexSize          int    // Size of the largest SCIP index file in GB
 	TotalRepoSize             int    // Size of all repositories
 	Users                     int    // Number of users
 

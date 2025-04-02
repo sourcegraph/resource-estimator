@@ -1,5 +1,7 @@
 package scaling
 
+import "math"
+
 // We are using the data gathered from different existing deployments as references for the estimates:
 // https://docs.google.com/spreadsheets/d/1N7X_OXDwKk0QSR2Ghbj7ZhjVrQXcMNj-yC8mF1amBi4/edit?usp=sharing
 // TODO: UPDATE DATA REFERENCE LINK AND DISPLAY NEW & MISSING SERVICES
@@ -79,7 +81,6 @@ var References = []ServiceScale{
 		},
 	},
 
-	// The entire index must be read into memory to be correlated.
 	// Scale vertically when the uploaded index is too large to be processed without OOMing the worker.
 	// Scale horizontally to process a higher throughput of indexes.
 	// calculation: ~2 times of the size of the largest index
@@ -100,6 +101,29 @@ var References = []ServiceScale{
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: 2, MEM: 8}, Limits: Resource{CPU: 4, MEM: 16}}, Value: 7},                          // calculation
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 1},                          // default
 			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: LargestIndexSizeRange.Min},  // bare minimum
+		},
+	},
+	{
+		ServiceName:       "syntacticCodeIntel",
+		ServiceLabel:      "syntactic-code-intel-worker",
+		DockerServiceName: "syntactic-code-intel-worker",
+		PodName:           "syntactic-code-intel",
+		ScalingFactor:     ByLargestRepoSize,
+		ReferencePoints: []Service{
+			// The reference points here are produced according to the following logic:
+			// - Syntactic worker can roughly index 0.75mb of code per second per core
+			// - Default timeout for syntactic worker is 15 minutes
+			// - Largest repository should be indexed within the timeout
+			// - Indexing is strongly CPU-bound
+			// Therefore, the number of CPUs (N) we need for a repo of size SIZE (megabytes) is N = ceil((SIZE / 0.75) / (15 * 60))
+			// where ceil(..) rounds the number up to the nearest integer
+			// That's because the maximum size we can index until timeout is triggered is MAX_SIZE = N * 0.75 * 15 * 60, so we need to find a value of N that satisfies MAX_SIZE >= SIZE.
+			// The memory requirements of the worker are low, but need to take CPU into account – we add memory at the rate of 750mb per core.
+			// Note that we assume repo size to be actual indexable code. E.g. when we consider a 100gb repository here, we assume it has 100gb of code that syntactic indexer can index – i.e.
+			// files with the right extensions, and in one of the languages we support. Any other files are ignored.
+			{Replicas: 4, Resources: Resources{Requests: Resource{CPU: 150, MEM: 112}, Limits: Resource{CPU: 160, MEM: 120}}, Value: math.Ceil((100 * 1024) / (0.75 * 15 * 60))}, // calculation for 100GB repo
+			{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 6, MEM: 4}, Limits: Resource{CPU: 8, MEM: 6}}, Value: 4},                                                  // data based
+			{Replicas: 1, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}, Value: 1},                                                 // bare minimum
 		},
 	},
 
@@ -399,6 +423,10 @@ var defaults = map[string]map[string]Service{
 	},
 	"preciseCodeIntel": {
 		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: .5, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
+		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}},
+	},
+	"syntacticCodeIntel": {
+		"kubernetes":     Service{Replicas: 2, Resources: Resources{Requests: Resource{CPU: 1, MEM: 2}, Limits: Resource{CPU: 2, MEM: 4}}},
 		"docker-compose": Service{Replicas: 1, Resources: Resources{Limits: Resource{CPU: 2, MEM: 4}}},
 	},
 	"prometheus": {

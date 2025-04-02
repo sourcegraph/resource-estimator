@@ -60,7 +60,7 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 				vecty.Property("min", rnge.Min),
 				vecty.Property("max", rnge.Max),
 				vecty.MarkupIf(float64(value) > rnge.Max, vecty.Class("errorInput")),
-				vecty.MarkupIf(postLabel == "GB - size of the largest LSIF index file" && value > 0, vecty.Property("disabled", false)),
+				vecty.MarkupIf(postLabel == "GB - size of the largest SCIP index file" && value > 0, vecty.Property("disabled", false)),
 			),
 		),
 		elem.Div(
@@ -148,7 +148,7 @@ func (p *MainView) inputs() vecty.ComponentOrHTML {
 				p.largestRepoSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestRepoSize, scaling.LargestRepoSizeRange, 1),
-			p.numberInput("GB - size of the largest LSIF index file", func(e *vecty.Event) {
+			p.numberInput("GB - size of the largest SCIP index file", func(e *vecty.Event) {
 				p.largestIndexSize, _ = strconv.Atoi(e.Value.Get("target").Get("value").String())
 				vecty.Rerender(p)
 			}, p.largestIndexSize, scaling.LargestIndexSizeRange, 1),
