@@ -15,5 +15,5 @@ OTHER_PACKAGES=(
 )
 
 for package in "${OTHER_PACKAGES[@]}"; do
-  asdf plugin-add "${package}"
+  asdf plugin add "${package}"
 done
