@@ -4,7 +4,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 set -euxo pipefail
 
 OTHER_PACKAGES=(
-  "dhall"
   "shellcheck"
   "shfmt"
   "fd"
