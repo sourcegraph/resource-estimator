@@ -4,12 +4,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: 'actions/checkout@v4'
-      - name: Install asdf
-        uses: 'asdf-vm/actions/setup@v3'
-      - name: Install asdf plugins
-        run: './scripts/asdf-add-plugins.sh'
-      - name: Install asdf tool versions and packages
-        run: './ci/asdf-install.sh'
+      - uses: jdx/mise-action@v2
       - name: Check that the CI pipeline definition is up-to-date with the dhall configuration
         run: ci/check-rendered-pipeline-up-to-date.sh
 
@@ -18,12 +13,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: 'actions/checkout@v4'
-      - name: Install asdf
-        uses: 'asdf-vm/actions/setup@v3'
-      - name: Install asdf plugins
-        run: './scripts/asdf-add-plugins.sh'
-      - name: Install asdf tool versions and packages
-        run: './ci/asdf-install.sh'
+      - uses: jdx/mise-action@v2
       - name: 'golangci-lint (.)'
         uses: 'golangci/golangci-lint-action@v8'
         with:
@@ -34,12 +24,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: 'actions/checkout@v4'
-      - name: Install asdf
-        uses: 'asdf-vm/actions/setup@v3'
-      - name: Install asdf plugins
-        run: './scripts/asdf-add-plugins.sh'
-      - name: Install asdf tool versions and packages
-        run: './ci/asdf-install.sh'
+      - uses: jdx/mise-action@v2
       - name: Check Prettier formatting
         run: ci/check-prettier.sh
 
@@ -48,12 +33,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: 'actions/checkout@v4'
-      - name: Install asdf
-        uses: 'asdf-vm/actions/setup@v3'
-      - name: Install asdf plugins
-        run: './scripts/asdf-add-plugins.sh'
-      - name: Install asdf tool versions and packages
-        run: './ci/asdf-install.sh'
+      - uses: jdx/mise-action@v2
       - name: Lint shell scripts
         run: just shellcheck
 
@@ -62,12 +42,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: 'actions/checkout@v4'
-      - name: Install asdf
-        uses: 'asdf-vm/actions/setup@v3'
-      - name: Install asdf plugins
-        run: './scripts/asdf-add-plugins.sh'
-      - name: Install asdf tool versions and packages
-        run: './ci/asdf-install.sh'
+      - uses: jdx/mise-action@v2
       - name: Check that scripts are formatted consistently
         run: ci/check-shfmt.sh
 
@@ -76,12 +51,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: 'actions/checkout@v4'
-      - name: Install asdf
-        uses: 'asdf-vm/actions/setup@v3'
-      - name: Install asdf plugins
-        run: './scripts/asdf-add-plugins.sh'
-      - name: Install asdf tool versions and packages
-        run: './ci/asdf-install.sh'
+      - uses: jdx/mise-action@v2
       - env:
           CI: 'true'
         name: Build WASM binary
