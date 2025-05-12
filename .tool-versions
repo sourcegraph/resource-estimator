@@ -1,9 +1,9 @@
-golang 1.18
-dhall 1.39.0
+golang 1.23
 shellcheck 0.7.1
-shfmt 3.2.1
+shfmt 3.11.0
 fd 8.2.1
-nodejs 14.15.4
+nodejs 20.12.0
 yarn 1.22.5
-just 0.8.3
+just 1.40.0
 deno 1.7.0
+golangci-lint 2.1.6
