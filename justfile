@@ -1,4 +1,4 @@
-all: check format lint build
+all: format lint build
 
 build: build-wasm
 

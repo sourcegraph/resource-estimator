@@ -74,27 +74,6 @@ func (p *MainView) numberInput(postLabel string, handler func(e *vecty.Event), v
 	)
 }
 
-func (p *MainView) rangeInput(postLabel string, handler func(e *vecty.Event), value int, rnge scaling.Range, step int) vecty.ComponentOrHTML {
-	return elem.Label(
-		vecty.Markup(vecty.Style("margin-top", "10px")),
-		elem.Input(
-			vecty.Markup(
-				vecty.Style("width", "30%"),
-				event.Input(handler),
-				vecty.Property("type", "range"),
-				vecty.Property("value", value),
-				vecty.Property("step", step),
-				vecty.Property("min", rnge.Min),
-				vecty.Property("max", rnge.Max),
-			),
-		),
-		elem.Div(
-			vecty.Markup(vecty.Class("post-label")),
-			vecty.Text(postLabel),
-		),
-	)
-}
-
 func (p *MainView) radioInput(groupName string, options []string, handler func(e *vecty.Event)) vecty.ComponentOrHTML {
 	var list vecty.List
 	for i, option := range options {

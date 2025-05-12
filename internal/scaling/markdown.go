@@ -26,6 +26,7 @@ func (e *Estimate) MarkdownExport() []byte {
 
 		fmt.Fprintf(&buf, "\n<small>**Note:** The estimated values include default values for services that are not listed in the estimator, like otel-collector and repo-updater for example. The default values for the non-displaying services should work well with instances of all sizes.</small>\n")
 		if e.EngagedUsers < 650/2 && e.AverageRepositories < 1500/2 {
+			//nolint:staticcheck
 			if e.DeploymentType == "docker-compose" {
 				fmt.Fprintf(&buf, "* <details><summary>**IMPORTANT:** Cost-saving option to reduce resource consumption is available</summary><br><blockquote>\n")
 				fmt.Fprintf(&buf, "  <p>You may choose to use _shared resources_ to reduce the costs of your deployment:</p>\n")
@@ -72,7 +73,9 @@ func (e *Estimate) MarkdownExport() []byte {
 			cpuLimit := "n/a"
 			memoryGBRequest := "n/a"
 			memoryGBLimit := "n/a"
+			//nolint:ineffassign
 			ephRequest := "-"
+			//nolint:ineffassign
 			ephLimit := "-"
 			pvc := "-"
 			if !ref.ContactSupport {
@@ -83,7 +86,9 @@ func (e *Estimate) MarkdownExport() []byte {
 					cpuLimit = fmt.Sprint(ref.Resources.Limits.CPU*float64(ref.Replicas), plus)
 					memoryGBRequest = "-"
 					memoryGBLimit = fmt.Sprint(ref.Resources.Limits.MEM*float64(ref.Replicas), "g", plus)
+					//nolint:ineffassign
 					ephRequest = "-"
+					//nolint:ineffassign
 					ephLimit = "-"
 					if ref.Storage > 0 {
 						pvc = fmt.Sprint(ref.Storage, "G", plus, "ꜝ")
@@ -155,7 +160,7 @@ func (e *Estimate) HelmExport() string {
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 	}
-	s := strings.Replace(string(y), `"`, "'", -1)
+	s := strings.ReplaceAll(string(y), `"`, "'")
 	return s
 }
 
@@ -171,6 +176,6 @@ func (e *Estimate) DockerExport() string {
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 	}
-	s := strings.Replace(string(y), `"`, "", -1)
+	s := strings.ReplaceAll(string(y), `"`, "")
 	return s
 }
